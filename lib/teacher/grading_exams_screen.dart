@@ -51,7 +51,7 @@ class _GradingExamsScreenState extends State<GradingExamsScreen> {
       final res = await http.get(Uri.parse(url));
       if (res.statusCode == 200) {
         final decodedData = json.decode(res.body);
-        List data = decodedData["data"] ?? []; // استخراج القائمة من مفتاح data مباشرة
+        List data = decodedData["data"] ?? [];
         if (decodedData is Map && decodedData.containsKey("data")) {
           data = decodedData["data"] ?? [];
         } else if (decodedData is List) {
@@ -96,8 +96,7 @@ class _GradingExamsScreenState extends State<GradingExamsScreen> {
     bool confirm = await _showConfirmationDialog();
     if (!confirm) return;
 
-    // استخراج الـ ID الصحيح من الـ selectedExam (بناءً على الرد المرفق)
-    final int? examId = _selectedExam["id"]; // المفتاح في السيرفر هو "id"
+    final int? examId = _selectedExam["id"];
 
     if (examId == null) {
       _showSnackBar(" خطأ: لم يتم العثور على معرف الاختبار", Colors.red);
@@ -111,11 +110,12 @@ class _GradingExamsScreenState extends State<GradingExamsScreen> {
         Uri.parse(postUrl),
         headers: {
           "Content-Type": "application/json",
-          "Accept": "text/plain", // كما هو موضح في الـ Swagger
+          "Accept": "text/plain",
         },
         body: jsonEncode({
           "stId": _selectedStudent!.id,
           "examId": examId,
+          "url": "",                                        // ✅ التعديل: إضافة url
           "grade": int.tryParse(_gradeController.text) ?? 0,
           "note": _noteController.text,
         }),
@@ -123,7 +123,6 @@ class _GradingExamsScreenState extends State<GradingExamsScreen> {
 
       debugPrint("Submit response: ${response.statusCode} - ${response.body}");
 
-      // السيرفر يرجع 200 في حالة النجاح كما هو ظاهر في الصورة
       if (response.statusCode == 200 || response.statusCode == 201) {
         _showSnackBar(" تم حفظ التقييم بنجاح", Colors.green);
         _resetForm();
@@ -134,6 +133,7 @@ class _GradingExamsScreenState extends State<GradingExamsScreen> {
       _showSnackBar(" حدث خطأ في الاتصال", Colors.red);
     }
   }
+
   void _resetForm() {
     setState(() {
       _selectedStudent = null;
@@ -205,7 +205,6 @@ class _GradingExamsScreenState extends State<GradingExamsScreen> {
                                 .map((e) => DropdownMenuItem(
                                 value: e,
                                 child: Text(
-                                  // ✅ الـ response بيرجع "name" مش "examName"
                                     e["name"] ??
                                         e["examName"] ??
                                         "اختبار بدون اسم",
@@ -293,8 +292,7 @@ class _GradingExamsScreenState extends State<GradingExamsScreen> {
               fontSize: 14,
               color: Colors.black87),
           children: const [
-            TextSpan(
-                text: ' *', style: TextStyle(color: Colors.red))
+            TextSpan(text: ' *', style: TextStyle(color: Colors.red))
           ],
         ),
       ),
@@ -304,8 +302,7 @@ class _GradingExamsScreenState extends State<GradingExamsScreen> {
   Widget _buildErrorText(String text) {
     return Padding(
       padding: const EdgeInsets.only(top: 5, right: 5),
-      child:
-      Text(text, style: const TextStyle(color: Colors.red, fontSize: 11)),
+      child: Text(text, style: const TextStyle(color: Colors.red, fontSize: 11)),
     );
   }
 
@@ -324,11 +321,9 @@ class _GradingExamsScreenState extends State<GradingExamsScreen> {
         child: DropdownButton<T>(
           isExpanded: true,
           hint: Text(hint,
-              style: TextStyle(
-                  color: Colors.grey.shade600, fontSize: 13),
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
               overflow: TextOverflow.ellipsis),
-          value:
-          items.any((item) => item.value == value) ? value : null,
+          value: items.any((item) => item.value == value) ? value : null,
           items: items,
           onChanged: (val) => onChanged(val),
         ),
@@ -339,8 +334,7 @@ class _GradingExamsScreenState extends State<GradingExamsScreen> {
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle:
-      TextStyle(color: Colors.grey.shade400, fontSize: 13),
+      hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
       contentPadding: const EdgeInsets.all(12),
       border: OutlineInputBorder(
           borderSide: BorderSide(color: Colors.grey.shade300),
@@ -349,8 +343,7 @@ class _GradingExamsScreenState extends State<GradingExamsScreen> {
           borderSide: BorderSide(color: Colors.grey.shade300),
           borderRadius: BorderRadius.circular(4)),
       focusedBorder: OutlineInputBorder(
-          borderSide:
-          const BorderSide(color: Color(0xFF07427C)),
+          borderSide: const BorderSide(color: Color(0xFF07427C)),
           borderRadius: BorderRadius.circular(4)),
     );
   }
@@ -387,13 +380,10 @@ class _GradingExamsScreenState extends State<GradingExamsScreen> {
                     style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFD17820),
                         shape: RoundedRectangleBorder(
-                            borderRadius:
-                            BorderRadius.circular(4))),
-                    onPressed: () =>
-                        Navigator.pop(context, true),
+                            borderRadius: BorderRadius.circular(4))),
+                    onPressed: () => Navigator.pop(context, true),
                     child: const Text("تأكيد",
-                        style:
-                        TextStyle(color: Colors.white)),
+                        style: TextStyle(color: Colors.white)),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -402,13 +392,10 @@ class _GradingExamsScreenState extends State<GradingExamsScreen> {
                     style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFD17820),
                         shape: RoundedRectangleBorder(
-                            borderRadius:
-                            BorderRadius.circular(4))),
-                    onPressed: () =>
-                        Navigator.pop(context, false),
+                            borderRadius: BorderRadius.circular(4))),
+                    onPressed: () => Navigator.pop(context, false),
                     child: const Text("إلغاء",
-                        style:
-                        TextStyle(color: Colors.white)),
+                        style: TextStyle(color: Colors.white)),
                   ),
                 ),
               ],

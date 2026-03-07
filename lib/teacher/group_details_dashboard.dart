@@ -185,8 +185,8 @@ class _GroupDetailsDashboardState extends State<GroupDetailsDashboard>
                                   builder: (c) => StudentExamsScreen(
                                     studentId: s.id,
                                     studentName: s.name,
-                                    groupId: widget.groupId, // تمرير القيمة من الشاشة الأب
-                                    levelId: widget.levelId, // تمرير القيمة من الشاشة الأب
+                                    groupId: widget.groupId,
+                                    levelId: widget.levelId,
                                   )
                               )
                           ),
@@ -246,31 +246,28 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   }
 
   String _formatDate(dynamic dateValue) {
-    // الحصول على تاريخ اليوم وتنسيقه كافتراضي
     final String today = DateTime.now().toString().split(" ")[0];
 
     if (dateValue == null ||
         dateValue.toString().isEmpty ||
         dateValue.toString().toLowerCase() == "null") {
-      return today; // إذا كان نيل نرجع تاريخ النهاردة
+      return today;
     }
 
     try {
       String dateStr = dateValue.toString();
 
-      // التحقق من التواريخ غير المنطقية (مثل بداية التقويم)
       if (dateStr.startsWith("0001") || dateStr.startsWith("1970")) {
         return today;
       }
 
-      // إذا كان التاريخ يحتوي على T (صيغة ISO) نأخذ الجزء الأول فقط
       if (dateStr.contains("T")) {
         return dateStr.split("T")[0];
       }
 
-      return dateStr; // إذا كان التاريخ سليم نرجعه كما هو
+      return dateStr;
     } catch (e) {
-      return today; // في حالة حدوث أي خطأ غير متوقع
+      return today;
     }
   }
   Future<void> _fetchDetails() async {
@@ -453,9 +450,13 @@ class _WeeklyQuestionsScreenState extends State<WeeklyQuestionsScreen> {
   }
 
   void _showGradingDialog(dynamic item, bool isGraded) {
-    // نستخدم "note" و "grade" من المستوى الخارجي لـ item كما في الـ JSON
-    final TextEditingController noteController = TextEditingController(text: (item["note"] == null || item["note"] == "null") ? "" : item["note"].toString());
-    final TextEditingController gradeController = TextEditingController(text: (item["grade"] == null || item["grade"] == "null") ? "" : item["grade"].toString());
+    String safeText(dynamic val) {
+      if (val == null) return "";
+      final s = val.toString().trim();
+      return (s.isEmpty || s.toLowerCase() == "null") ? "" : s;
+    }
+    final TextEditingController noteController = TextEditingController(text: safeText(item["note"]));
+    final TextEditingController gradeController = TextEditingController(text: safeText(item["grade"]));
     final exam = item["exam"] ?? {};
     final int examId = exam["id"] ?? 0;
 
@@ -554,8 +555,10 @@ class _WeeklyQuestionsScreenState extends State<WeeklyQuestionsScreen> {
                 itemBuilder: (context, index) {
                   final item = _questions[index];
                   final exam = item["exam"] ?? {};
-                  final bool isGraded = item["grade"] != null || (item["note"] != null && item["note"].toString().isNotEmpty && item["note"].toString() != "null");
-                  final String studentAnswer = item["note"]?.toString() ?? "--";
+                  final String? cleanNote = (item["note"] == null || item["note"].toString().trim().isEmpty || item["note"].toString().trim().toLowerCase() == "null") ? null : item["note"].toString().trim();
+                  final String? cleanGrade = (item["grade"] == null || item["grade"].toString().trim().isEmpty || item["grade"].toString().trim().toLowerCase() == "null") ? null : item["grade"].toString().trim();
+                  final bool isGraded = cleanGrade != null || cleanNote != null;
+                  final String studentAnswer = cleanNote ?? "--";
                   return Container(
                     margin: const EdgeInsets.only(bottom: 15),
                     padding: const EdgeInsets.symmetric(vertical: 20),
@@ -596,8 +599,8 @@ class StudentExamsScreen extends StatefulWidget {
     super.key,
     required this.studentId,
     required this.studentName,
-    required this.groupId,  // أضيفي هذا
-    required this.levelId,  // أضيفي هذا
+    required this.groupId,
+    required this.levelId,
   });
 
   @override
@@ -614,6 +617,22 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
     _fetch();
   }
 
+  // ✅ FIX: دالة مساعدة لاستخراج القيمة وتنظيفها من null
+  String? _cleanValue(dynamic value) {
+    if (value == null) return null;
+    String str = value.toString().trim();
+    if (str.isEmpty || str.toLowerCase() == "null") return null;
+    // FIX: التقييمات القديمة اتحفظت بـ "null, " في الأول بسبب bug قديم - نشيلها
+    final lowerStr = str.toLowerCase();
+    if (lowerStr.startsWith("null,")) {
+      str = str.substring(5).trim();
+    } else if (lowerStr.startsWith("null ")) {
+      str = str.substring(5).trim();
+    }
+    if (str.isEmpty) return null;
+    return str;
+  }
+
   Future<void> _fetch() async {
     setState(() => _isLoading = true);
     final String url =
@@ -625,16 +644,27 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
         final decoded = json.decode(res.body);
         List<dynamic> rawData = decoded["data"] ?? [];
         final normalized = rawData.map((item) {
+          // 🔍 طباعة الـ item كامل عشان نشوف بالظبط فين الـ note جاي
+          debugPrint("📦 RAW ITEM: ${jsonEncode(item)}");
+
           final exam = item["exam"] ?? item["ex"] ?? {};
           final studentExams = exam["studentExams"] as List?;
           final firstExam = (studentExams != null && studentExams.isNotEmpty) ? studentExams[0] : null;
-          final grade = item["grade"] ?? item["gr"] ?? firstExam?["grade"];
-          final note = item["note"] ?? item["no"] ?? firstExam?["note"];
-          debugPrint("🔍 EXAM: ${exam["name"]} | grade=$grade | note=$note | studentExams=$studentExams");
+
+          // نجرب كل المسارات الممكنة
+          final rawGrade = _cleanValue(item["grade"]) ??
+              _cleanValue(item["gr"]) ??
+              _cleanValue(firstExam?["grade"]);
+
+          final rawNote = _cleanValue(item["note"]) ??
+              _cleanValue(item["no"]) ??
+              _cleanValue(firstExam?["note"]);
+
+          debugPrint("🔍 EXAM: ${exam["name"]} | grade=$rawGrade | note=$rawNote | firstExam=$firstExam");
           return {
             "exam": exam,
-            "grade": grade,
-            "note": note,
+            "grade": rawGrade,   // ✅ إما قيمة حقيقية أو null (مش "null" string)
+            "note": rawNote,     // ✅ إما قيمة حقيقية أو null (مش "null" string)
             "studentId": item["studentId"] ?? item["stId"] ?? item["st"],
           };
         }).toList();
@@ -665,7 +695,6 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
       );
       debugPrint("📥 POST RESPONSE: ${postResponse.statusCode} | ${postResponse.body}");
 
-      // لو نجح الـ INSERT
       final postBody = jsonDecode(postResponse.body);
       final bool isDuplicate = postBody["error"] != null &&
           postBody["error"].toString().contains("duplicate key");
@@ -679,7 +708,7 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
         return true;
       }
 
-      // لو duplicate key → نستخدم PUT UpdateStudentExam (query params)
+      // لو duplicate key → نستخدم PUT UpdateStudentExam
       if (isDuplicate) {
         debugPrint("🔄 Duplicate key detected, trying PUT UpdateStudentExam...");
         final putUri = Uri.parse(
@@ -706,21 +735,16 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
     }
     return false;
   }
+
   void _showGradingDialog(dynamic item, bool isGraded) {
     final exam = item["exam"] ?? item["ex"] ?? {};
     final int examId = exam["id"] ?? 0;
 
-    // حل مشكلة "null" - نبحث عن القيمة ونحولها لنص فارغ إذا كانت نيل
-    var rawGrade = item["grade"] ?? item["gr"] ??
-        (item["studentExams"] != null && item["studentExams"].isNotEmpty ? item["studentExams"][0]["grade"] : "");
-
-    var rawNote = item["note"] ?? item["no"] ??
-        (item["studentExams"] != null && item["studentExams"].isNotEmpty ? item["studentExams"][0]["note"] : "");
-
+    // ✅ FIX: القيم دلوقتي مضمونة مش فيها "null" string بسبب _cleanValue في _fetch
     final TextEditingController gradeController = TextEditingController(
-        text: (rawGrade == null || rawGrade.toString() == "null") ? "" : rawGrade.toString());
+        text: item["grade"]?.toString() ?? "");
     final TextEditingController noteController = TextEditingController(
-        text: (rawNote == null || rawNote.toString() == "null") ? "" : rawNote.toString());
+        text: item["note"]?.toString() ?? "");
 
     showDialog(
       context: context,
@@ -744,20 +768,23 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
                       IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  const Text("التعليق", style: TextStyle(fontWeight: FontWeight.bold, fontFamily: "Almarai")),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: noteController,
-                    maxLines: 3,
-                    readOnly: isGraded,
-                    decoration: InputDecoration(
-                      hintText: "اكتب هنا...",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      filled: isGraded,
-                      fillColor: isGraded ? Colors.grey.shade100 : null,
+                  // ✅ FIX: لو في وضع العرض (isGraded) والـ note فاضي → متظهرش خانة التعليق خالص
+                  if (!isGraded || noteController.text.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    const Text("التعليق", style: TextStyle(fontWeight: FontWeight.bold, fontFamily: "Almarai")),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: noteController,
+                      maxLines: 3,
+                      readOnly: isGraded,
+                      decoration: InputDecoration(
+                        hintText: "اكتب هنا...",
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        filled: isGraded,
+                        fillColor: isGraded ? Colors.grey.shade100 : null,
+                      ),
                     ),
-                  ),
+                  ],
                   const SizedBox(height: 20),
                   const Text("نقاط الطالب *", style: TextStyle(fontWeight: FontWeight.bold, fontFamily: "Almarai")),
                   const SizedBox(height: 8),
@@ -779,7 +806,7 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
                       style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD17820), padding: const EdgeInsets.symmetric(vertical: 15)),
                       onPressed: () async {
                         if (!isGraded) {
-                          Navigator.pop(ctx); // ← نقفل الـ dialog الأول
+                          Navigator.pop(ctx);
                           await _submitGrade(examId, gradeController.text, noteController.text);
                         } else {
                           Navigator.pop(ctx);
@@ -796,6 +823,7 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
       ),
     );
   }
+
   Future<void> _startDownload(String? relativeUrl, String examName) async {
     String url = "https://nourelman.runasp.net/api/StudentCources/DownloadLatest?levelId=${widget.levelId}&typeId=2";
 
@@ -803,8 +831,6 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
       final directory = Directory('/storage/emulated/0/Download');
       if (!await directory.exists()) await directory.create(recursive: true);
 
-      // بدلاً من pdf، سنحاول حفظه كصورة لأن اللوج أكد أنها image/png
-      // أو الأفضل: تسميته بدون امتداد ثابت إذا كنتِ ستستخدمين open_filex
       String finalFileName = "${examName.replaceAll(' ', '_')}.png";
 
       await FlutterDownloader.enqueue(
@@ -821,7 +847,7 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text("⬇️ جاري التحميل...", style: TextStyle(fontFamily: "Almarai")),
-              backgroundColor: Colors.green, // اللون الأخضر كما طلبتِ
+              backgroundColor: Colors.green,
               duration: Duration(seconds: 1),
             ));
       }
@@ -829,8 +855,7 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
       debugPrint("Download Error: $e");
     }
   }
-  @override
-  @override
+
   @override
   Widget build(BuildContext context) {
     return Directionality(
@@ -844,7 +869,6 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
         ),
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
-        // التحقق هنا: إذا كانت القائمة فارغة تظهر الرسالة المطلوبة
             : _tasks.isEmpty
             ? const Center(
           child: Text(
@@ -864,8 +888,9 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
             final item = _tasks[index];
             final exam = item["exam"] ?? {};
 
-            final gradeVal = item["grade"]; // ← من الـ normalized مباشرة
-            final bool isGraded = gradeVal != null && gradeVal.toString() != "null";
+            final gradeVal = item["grade"];
+            // ✅ FIX: gradeVal هنا مضمون مش "null" string بسبب _cleanValue
+            final bool isGraded = gradeVal != null;
             debugPrint("🎨 BUILD item ${exam["name"]} | gradeVal=$gradeVal | isGraded=$isGraded");
 
             return Container(
