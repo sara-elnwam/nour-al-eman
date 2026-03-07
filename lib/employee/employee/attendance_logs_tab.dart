@@ -127,15 +127,16 @@ class _AttendanceLogsTabState extends State<AttendanceLogsTab> {
           final List<dynamic> data = decoded['data'] ?? [];
 
           // عمل set من التواريخ الموجودة محلياً عشان منضفش تكرار
-          final Set<String> localDates = {};
+          // ✅ dedup بـ date+checkInTime عشان منحذفش بصمات مختلفة في نفس اليوم
+          final Set<String> localKeys = {};
           for (var r in allRecords) {
-            if (r.date != null) localDates.add(r.date!);
+            if (r.date != null) localKeys.add('${r.date}|${r.checkInTime ?? ""}');
           }
 
           for (var item in data) {
             final serverRecord = AttendanceData.fromJson(item);
-            // ضيف بس لو مش موجود محلياً
-            if (!localDates.contains(serverRecord.date)) {
+            final key = '${serverRecord.date}|${serverRecord.checkInTime ?? ""}';
+            if (!localKeys.contains(key)) {
               allRecords.add(serverRecord);
             }
           }

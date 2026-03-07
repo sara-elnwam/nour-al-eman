@@ -127,14 +127,16 @@ class _EmployeeAttendanceTabState extends State<EmployeeAttendanceTab> {
           final List<dynamic> data = decoded['data'] ?? [];
 
           // عمل set من التواريخ الموجودة محلياً
-          final Set<String> localDates = {};
+          // ✅ dedup بـ date+checkInTime عشان منحذفش بصمات مختلفة في نفس اليوم
+          final Set<String> localKeys = {};
           for (var r in allRecords) {
-            if (r.date != null) localDates.add(r.date!);
+            if (r.date != null) localKeys.add('${r.date}|${r.checkInTime ?? ""}');
           }
 
           for (var item in data) {
             final serverRecord = _AttendanceRecord.fromJson(item);
-            if (!localDates.contains(serverRecord.date)) {
+            final key = '${serverRecord.date}|${serverRecord.checkInTime ?? ""}';
+            if (!localKeys.contains(key)) {
               allRecords.add(serverRecord);
             }
           }

@@ -162,31 +162,12 @@ class _AttendanceHistoryScreenState
         .where((item) => _parseServerDate(item.date) != null)
         .toList();
 
-    Map<String, AttendanceData> mergedByDate = {};
-    for (var entry in validData) {
-      String dateKey = _normalizeDate(entry.date);
-      if (!mergedByDate.containsKey(dateKey)) {
-        mergedByDate[dateKey] = entry;
-      } else {
-        final existing = mergedByDate[dateKey]!;
-        mergedByDate[dateKey] = AttendanceData(
-          userName: existing.userName ?? entry.userName,
-          checkType: existing.checkType,
-          locationName: existing.locationName ?? entry.locationName,
-          date: existing.date,
-          checkInTime: existing.checkInTime ?? entry.checkInTime,
-          checkOutTime: existing.checkOutTime ?? entry.checkOutTime,
-          workingHours: existing.workingHours ?? entry.workingHours,
-        );
-      }
-    }
-
-    final sortedEntries = mergedByDate.values.toList();
-    sortedEntries.sort((a, b) =>
+    // ✅ كل record يظهر لوحده - مش بنعمل merge
+    validData.sort((a, b) =>
         _parseServerDate(b.date)!.compareTo(_parseServerDate(a.date)!));
 
     Map<String, List<AttendanceData>> groups = {};
-    for (var entry in sortedEntries) {
+    for (var entry in validData) {
       DateTime date = _parseServerDate(entry.date)!;
       String monthYear = DateFormat('MMMM yyyy', 'ar').format(date);
       if (!groups.containsKey(monthYear)) groups[monthYear] = [];

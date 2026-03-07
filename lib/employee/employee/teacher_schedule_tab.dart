@@ -51,7 +51,7 @@ class _TeacherScheduleTabState extends State<TeacherScheduleTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            "جدول الشيخ",
+            " ",
             style: TextStyle(
               color: Color(0xFF07427C),
               fontSize: 16,
