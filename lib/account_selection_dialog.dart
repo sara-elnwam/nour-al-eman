@@ -76,7 +76,7 @@ class _AccountSelectionDialogState extends State<AccountSelectionDialog>
         builder: (context, child) {
           return Stack(
             children: [
-              // خلفية مهمشة blurred مع overlay غامق
+
               GestureDetector(
                 onTap: _dismiss,
                 child: BackdropFilter(
@@ -90,7 +90,6 @@ class _AccountSelectionDialogState extends State<AccountSelectionDialog>
                 ),
               ),
 
-              // الـ Bottom Sheet
               Align(
                 alignment: Alignment.bottomCenter,
                 child: SlideTransition(
@@ -128,7 +127,7 @@ class _AccountSelectionDialogState extends State<AccountSelectionDialog>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle bar
+
           const SizedBox(height: 12),
           Container(
             width: 44,
@@ -140,7 +139,6 @@ class _AccountSelectionDialogState extends State<AccountSelectionDialog>
           ),
           const SizedBox(height: 22),
 
-          // العنوان مع أيقونة
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Row(
@@ -222,7 +220,6 @@ class _AccountSelectionDialogState extends State<AccountSelectionDialog>
     final String typeName = _getUserTypeName(account['userType']);
     final IconData typeIcon = _getUserTypeIcon(account['userType']);
 
-    // Staggered animation لكل item
     final itemAnimation = CurvedAnimation(
       parent: _itemsController,
       curve: Interval(

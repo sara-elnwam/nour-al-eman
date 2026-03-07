@@ -176,21 +176,48 @@ class _LevelOneScreenState extends State<LevelOneScreen> {
     }
   }
 
-  Future<void> _deleteGroupApi(int id) async {
+  Future<void> _deleteGroupApi(int id, String name) async {
     try {
-      final response = await http.delete(
-        Uri.parse('https://nourelman.runasp.net/api/Group/Delete?id=$id'),
+      // السيرفر لا يدعم DELETE ولا POST على هذا الـ endpoint
+      // نستخدم Update مع active: false لتعطيل المجموعة وإخفاؤها
+      final response = await http.put(
+        Uri.parse('https://nourelman.runasp.net/api/Group/Update'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "Id": id,
+          "Name": name,
+          "Active": false,
+          "Status": false,
+          "LevelId": groupsList.firstWhere((g) => g['id'] == id, orElse: () => {})['levelId'] ?? widget.levelId,
+          "Days": [],
+          "Time": "00:00",
+          "GroupSessions": [],
+        }),
       );
-      if (response.statusCode == 200) {
+
+      debugPrint("Deactivate Group (${response.statusCode}): ${response.body}");
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("تم حذف المجموعة بنجاح"), backgroundColor: Colors.green),
+            const SnackBar(content: Text("تم حذف المجموعة بنجاح ✅"), backgroundColor: Colors.green),
           );
           _fetchGroups();
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("فشل الحذف: ${response.statusCode}"), backgroundColor: Colors.red),
+          );
         }
       }
     } catch (e) {
       debugPrint("Delete Error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("حدث خطأ في الاتصال"), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -351,7 +378,7 @@ class _LevelOneScreenState extends State<LevelOneScreen> {
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text("إلغاء")),
             ElevatedButton(
-              onPressed: () { _deleteGroupApi(groupId); Navigator.pop(context); },
+              onPressed: () { _deleteGroupApi(groupId, name); Navigator.pop(context); },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: const Text("حذف", style: TextStyle(color: Colors.white)),
             ),

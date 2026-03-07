@@ -25,7 +25,7 @@ void main() async {
     ignoreSsl: true,
   );
 
-  // 🔥 ده كان ناقص
+
   await initializeDateFormatting('ar', null);
 
   runApp(const MyApp());

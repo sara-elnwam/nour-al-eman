@@ -563,22 +563,73 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     }
   }
 
-  Future<void> _deleteStudent(int studentId) async {
+  Future<void> _deleteStudent(int studentId, String studentName) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final url = Uri.parse('https://nourelman.runasp.net/api/Account/DeActivate?id=$studentId&type=0');
-      final response = await http.post(url, headers: {
-        'Authorization': 'Bearer ${prefs.getString('token')}',
-        'Content-Type': 'application/json',
-      });
-      if (response.statusCode == 200) {
-        _showSnackBar("تم الحذف", Colors.green);
-        Future.delayed(const Duration(milliseconds: 500), () => _fetchGroupData());
+      final token = prefs.getString('token');
+
+      // أولاً: جلب بيانات الطالب الكاملة
+      final getResponse = await http.get(
+        Uri.parse('https://nourelman.runasp.net/api/Student/GetById?id=$studentId'),
+        headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+      );
+
+      if (getResponse.statusCode != 200) {
+        _showSnackBar("فشل جلب بيانات الطالب", Colors.red);
+        return;
+      }
+
+      final responseData = jsonDecode(getResponse.body);
+      dynamic rawData = responseData['data'];
+      Map<String, dynamic> fullData = {};
+      if (rawData is List && rawData.isNotEmpty) {
+        fullData = Map<String, dynamic>.from(rawData[0]);
+      } else if (rawData is Map<String, dynamic>) {
+        fullData = Map<String, dynamic>.from(rawData);
+      }
+
+      // ثانياً: بناء payload نظيف بدون nested objects
+      // السيرفر بيرفض لو group موجود وجواه days/time = null
+      final Map<String, dynamic> cleanPayload = {
+        "id": fullData['id'],
+        "name": fullData['name'],
+        "phone": fullData['phone'] ?? "",
+        "phone2": fullData['phone2'] ?? "",
+        "address": fullData['address'] ?? "",
+        "parentJob": fullData['parentJob'] ?? "",
+        "governmentSchool": fullData['governmentSchool'] ?? "",
+        "attendanceType": fullData['attendanceType'] ?? "",
+        "paymentType": fullData['paymentType'] ?? "",
+        "documentType": fullData['documentType'] ?? "",
+        "typeInfamily": fullData['typeInfamily'] ?? "",
+        "birthDate": fullData['birthDate'],
+        "joinDate": fullData['joinDate'],
+        "locId": fullData['locId'],
+        "levelId": fullData['levelId'],
+        "groupId": null, // إزالة الطالب من المجموعة
+        "days": [],      // مطلوب من السيرفر
+        "time": "00:00", // مطلوب من السيرفر
+      };
+
+      debugPrint("Clean remove student payload: ${jsonEncode(cleanPayload)}");
+
+      final updateResponse = await http.put(
+        Uri.parse('https://nourelman.runasp.net/api/Student/Update'),
+        headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+        body: jsonEncode(cleanPayload),
+      );
+
+      debugPrint("Remove Student from Group (${updateResponse.statusCode}): ${updateResponse.body}");
+
+      if (updateResponse.statusCode == 200 || updateResponse.statusCode == 204) {
+        _showSnackBar("تم حذف الطالب من المجموعة ✅", Colors.green);
+        Future.delayed(const Duration(milliseconds: 300), () => _fetchGroupData());
       } else {
-        _showSnackBar("فشل الحذف", Colors.red);
+        _showSnackBar("فشل الحذف: ${updateResponse.statusCode}", Colors.red);
       }
     } catch (e) {
       _showSnackBar("حدث خطأ في الاتصال", Colors.red);
+      debugPrint("Delete student error: $e");
     }
   }
 
@@ -638,7 +689,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () async {
                 Navigator.pop(context);
-                await _deleteStudent(studentId);
+                await _deleteStudent(studentId, studentName);
               },
               child: const Text("حذف"),
             ),

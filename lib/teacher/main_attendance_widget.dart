@@ -107,19 +107,22 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
       final localJson = prefs.getString(localKey);
       if (localJson != null) {
         final List<dynamic> localRecords = jsonDecode(localJson);
+        // ✅ FIX: جيب آخر record في النهارده مش أول واحد
+        dynamic lastTodayRec;
         for (var rec in localRecords) {
           final normalized = _normalizeDate(rec['date']?.toString());
           if (normalized == todayDate) {
-            // ✅ FIX: تحقق من check-out (مش "Out")
-            final bool hasCheckOut = (rec['checkOutTime'] != null &&
-                rec['checkOutTime'].toString().isNotEmpty) ||
-                rec['checkType'] == 'check-out';
-            if (mounted) {
-              setState(() => _checkType = hasCheckOut ? "check-in" : "check-out");
-            }
-            foundTodayLocally = true;
-            break;
+            lastTodayRec = rec;
           }
+        }
+        if (lastTodayRec != null) {
+          final bool hasCheckOut = (lastTodayRec['checkOutTime'] != null &&
+              lastTodayRec['checkOutTime'].toString().isNotEmpty) ||
+              lastTodayRec['checkType'] == 'check-out';
+          if (mounted) {
+            setState(() => _checkType = hasCheckOut ? "check-in" : "check-out");
+          }
+          foundTodayLocally = true;
         }
       }
 
@@ -140,16 +143,20 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
           if (response.statusCode == 200) {
             final data = json.decode(response.body);
             final List<dynamic> logs = data['data'] ?? [];
+            // ✅ FIX: جيب آخر record في النهارده من السيرفر
+            dynamic lastServerRec;
             for (var log in logs) {
               final String? normalized = _normalizeDate(log['date']?.toString());
               if (normalized == todayDate) {
-                final bool hasCheckOut = log['checkOutTime'] != null &&
-                    log['checkOutTime'].toString().isNotEmpty &&
-                    log['checkOutTime'].toString() != "--";
-                if (mounted) {
-                  setState(() => _checkType = hasCheckOut ? "check-in" : "check-out");
-                }
-                break;
+                lastServerRec = log;
+              }
+            }
+            if (lastServerRec != null) {
+              final bool hasCheckOut = lastServerRec['checkOutTime'] != null &&
+                  lastServerRec['checkOutTime'].toString().isNotEmpty &&
+                  lastServerRec['checkOutTime'].toString() != "--";
+              if (mounted) {
+                setState(() => _checkType = hasCheckOut ? "check-in" : "check-out");
               }
             }
           }
