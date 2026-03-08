@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'student_courses_screen.dart';
-import 'teacher_courses_screen.dart'; // تأكد أن الاسم مطابق لاسم الملف اللي سيفته عندك
+import 'teacher_courses_screen.dart';
 class CoursesScreen extends StatelessWidget {
   const CoursesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // الألوان الموحدة من ملفاتك
     const Color kActiveBlue = Color(0xFF1976D2);
     const Color darkBlue = Color(0xFF2E3542);
     const Color kBorderColor = Color(0xFFE2E8F0);
@@ -26,7 +25,7 @@ class CoursesScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          // داخل ملف courses_screen.dart
+
           _buildCourseRowCard(
             context,
             title: "دورات الطلاب",
@@ -48,7 +47,7 @@ class CoursesScreen extends StatelessWidget {
           primaryColor: Colors.green,
           textColor: darkBlue,
           onTap: () {
-            // التعديل هنا:
+
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const TeacherCoursesScreen()),
@@ -62,7 +61,7 @@ class CoursesScreen extends StatelessWidget {
     );
   }
 
-  // دالة بناء الكرت بنفس ستايل WaitingListScreen تماماً
+  //  WaitingListScreen
   Widget _buildCourseRowCard(
       BuildContext context, {
         required String title,
@@ -91,7 +90,6 @@ class CoursesScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
           child: Row(
             children: [
-              // الأيقونة داخل دائرة ملونة خفيفة
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -101,7 +99,6 @@ class CoursesScreen extends StatelessWidget {
                 child: Icon(icon, color: primaryColor, size: 28),
               ),
               const SizedBox(width: 20),
-              // عنوان الدورة
               Expanded(
                 child: Text(
                   title,
@@ -113,7 +110,6 @@ class CoursesScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              // سهم التنقل
               const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
             ],
           ),

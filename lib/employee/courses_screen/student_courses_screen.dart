@@ -18,9 +18,9 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
 
   List<dynamic> currentData = [];
   bool isLoading = true;
-  int _currentTabIndex = 4; // نبدأ بالمقررات مثلاً (ID: 4)
+  int _currentTabIndex = 4;
 
-  // Controllers للـ Popups
+
   final TextEditingController nameController = TextEditingController();
   final TextEditingController descController = TextEditingController();
   bool isMandatory = false;
@@ -28,7 +28,7 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
   File? selectedFile;
   String? selectedFileName;
 
-  // تعريف القائمة بشكل صحيح كـ Map لتجنب خطأ الـ Type
+
   final List<Map<String, dynamic>> levelsData = [
     {"name": "المستوى الأول", "id": "1"},
     {"name": "المستوى الثاني", "id": "2"},
@@ -47,10 +47,10 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
   @override
   void initState() {
     super.initState();
-    fetchData(tabItems[4]['id']); // تحميل المقررات افتراضياً
+    fetchData(tabItems[4]['id']);
   }
 
-  // 1. جلب البيانات (GET)
+
   Future<void> fetchData(int typeId) async {
     setState(() => isLoading = true);
     try {
@@ -70,17 +70,17 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
     }
   }
 
-  // 2. الحذف (DELETE)
+
   Future<void> deleteItem(int id) async {
     try {
-      // السيرفر يتوقع طلب POST للحذف مع الـ ID في الرابط
+
       final response = await http.post(
         Uri.parse("https://nourelman.runasp.net/api/StudentCources/Delete?id=$id"),
       );
 
       if (response.statusCode == 200) {
-        Navigator.pop(context); // إغلاق نافذة التأكيد
-        fetchData(tabItems[_currentTabIndex]['id']); // تحديث الجدول
+        Navigator.pop(context);
+        fetchData(tabItems[_currentTabIndex]['id']);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("تم الحذف بنجاح"), backgroundColor: Colors.green),
@@ -96,7 +96,6 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
   }
 
   Future<void> submitData({required bool isEdit, int? id}) async {
-    // 1. التأكد من وجود ملف (السيرفر يجبرك على وجود ملف كما رأينا في الخطأ 400)
     if (selectedFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("يرجى اختيار ملف أولاً"), backgroundColor: Colors.red),
@@ -104,10 +103,8 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
       return;
     }
 
-    // 2. تحديد الرابط الصحيح (تغيير Add إلى Save بناءً على السيرفر عندك)
     final String endpoint = isEdit ? "Update" : "Save";
 
-    // بناء الرابط مع الـ Query Parameters لأن السيرفر يتوقعها في الرابط (Query String)
     final String url = "https://nourelman.runasp.net/api/StudentCources/$endpoint"
 
         "?Name=${Uri.encodeComponent(nameController.text)}"
@@ -117,14 +114,11 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
         "&TypeId=${tabItems[_currentTabIndex]['id']}";
 
     if (isEdit) {
-      // إذا كان تعديل، نضيف الـ ID للرابط أيضاً
-      // url += "&Id=$id";
     }
 
     try {
       var request = http.MultipartRequest('POST', Uri.parse(url));
 
-      // 3. إضافة الملف (تأكد أن اسم الحقل 'file' صغير وليس 'File' كما في الـ Swagger)
       request.files.add(await http.MultipartFile.fromPath(
         'file',
         selectedFile!.path,
@@ -133,10 +127,9 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
       var response = await request.send();
 
       if (response.statusCode == 200) {
-        Navigator.pop(context); // إغلاق النافذة
-        fetchData(tabItems[_currentTabIndex]['id']); // تحديث الجدول
+        Navigator.pop(context);
+        fetchData(tabItems[_currentTabIndex]['id']);
 
-        // إعادة تعيين الحقول
         nameController.clear();
         descController.clear();
         setState(() {
@@ -148,7 +141,7 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
           const SnackBar(content: Text("تمت العملية بنجاح"), backgroundColor: Colors.green),
         );
       } else {
-        // طباعة الخطأ إذا لم يكن 200
+
         final respStr = await response.stream.bytesToString();
         debugPrint("خطأ من السيرفر: $respStr");
         ScaffoldMessenger.of(context).showSnackBar(
@@ -165,7 +158,6 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
       return;
     }
 
-    // بناء الرابط مع الـ Query Parameters كما تظهر في صورة الـ Payload
     final String url = "https://nourelman.runasp.net/api/StudentCources/Save"
 
         "?Name=${nameController.text}"
@@ -176,7 +168,6 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
 
     var request = http.MultipartRequest('POST', Uri.parse(url));
 
-    // إضافة الملف - تأكد أن اسم الحقل 'file' صغير كما في الصورة
     request.files.add(await http.MultipartFile.fromPath(
       'file',
       selectedFile!.path,

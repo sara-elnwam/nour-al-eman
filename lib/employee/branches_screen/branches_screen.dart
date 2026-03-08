@@ -21,7 +21,6 @@ class _BranchesScreenState extends State<BranchesScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
 
-  // 4 نقاط إحداثيات (كل نقطة = Lat + Long)
   final TextEditingController lat1Controller = TextEditingController();
   final TextEditingController long1Controller = TextEditingController();
   final TextEditingController lat2Controller = TextEditingController();
@@ -70,7 +69,6 @@ class _BranchesScreenState extends State<BranchesScreen> {
     final String endpoint = isEdit ? "Update" : "Save";
     final String url = "https://nourelman.runasp.net/api/Locations/$endpoint";
 
-    // تجميع الـ 8 قيم (4 نقاط × Lat/Long)
     String coords =
         "${lat1Controller.text};${long1Controller.text};"
         "${lat2Controller.text};${long2Controller.text};"
@@ -252,7 +250,6 @@ class _BranchesScreenState extends State<BranchesScreen> {
             flex: 1,
             child: InkWell(
               onTap: () {
-                // تعبئة الـ 8 حقول من الـ coordinates المخزنة
                 List<String> parts =
                 (item['coordinates'] ?? "").toString().split(';');
                 lat1Controller.text =
@@ -306,7 +303,6 @@ class _BranchesScreenState extends State<BranchesScreen> {
     } else {
       nameController.text = data['name'] ?? "";
       addressController.text = data['address'] ?? "";
-      // الإحداثيات اتعبت في الـ onTap بتاع زر التعديل
     }
 
     showDialog(
