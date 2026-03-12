@@ -97,8 +97,6 @@ class _AttendanceHistoryScreenState
         }
       }
 
-      // ── الخطوة 2: جيب سجلات السيرفر وأضف اللي مش موجود محلياً ──
-      // السيرفر بيكمّل التواريخ القديمة اللي مش عندنا محلياً
       try {
         final String token2 = prefs.getString('user_token') ?? '';
         final url =
