@@ -487,7 +487,13 @@ class _WeeklyQuestionsScreenState extends State<WeeklyQuestionsScreen> {
                   TextField(
                     controller: noteController,
                     maxLines: 3,
-                    decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), hintText: "اكتب هنا..."),
+                    readOnly: isGraded,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      hintText: "اكتب هنا...",
+                      filled: isGraded,
+                      fillColor: isGraded ? Colors.grey.shade100 : null,
+                    ),
                   ),
                   const SizedBox(height: 20),
                   const Text("نقاط الطالب *", style: TextStyle(fontWeight: FontWeight.bold)),
@@ -495,7 +501,13 @@ class _WeeklyQuestionsScreenState extends State<WeeklyQuestionsScreen> {
                   TextField(
                     controller: gradeController,
                     keyboardType: TextInputType.number,
-                    decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), hintText: "ادخل النقاط"),
+                    readOnly: isGraded,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      hintText: "ادخل النقاط",
+                      filled: isGraded,
+                      fillColor: isGraded ? Colors.grey.shade100 : null,
+                    ),
                   ),
                   const SizedBox(height: 25),
                   SizedBox(
@@ -503,10 +515,12 @@ class _WeeklyQuestionsScreenState extends State<WeeklyQuestionsScreen> {
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD17820), padding: const EdgeInsets.symmetric(vertical: 15)),
                       onPressed: () {
-                        _submitGrade(examId, gradeController.text, noteController.text);
+                        if (!isGraded) {
+                          _submitGrade(examId, gradeController.text, noteController.text);
+                        }
                         Navigator.pop(context);
                       },
-                      child: const Text("حفظ التقييم", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: Text(isGraded ? "إغلاق" : "حفظ التقييم", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
                   )
                 ],
