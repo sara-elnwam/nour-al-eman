@@ -24,7 +24,7 @@ class _EmployeeWaitingListScreenState extends State<EmployeeWaitingListScreen> {
   Future<void> _fetchEmployees() async {
     try {
       setState(() => isLoading = true);
-      final response = await http.get(Uri.parse('https://nour-al-eman.runasp.net/api/Employee/GetByStatus?status=false&type=2'));
+      final response = await http.get(Uri.parse('https://nourelman.runasp.net/api/Employee/GetByStatus?status=false&type=2'));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() { allEmployees = data is List ? data : []; filteredEmployees = allEmployees; isLoading = false; });
@@ -45,7 +45,7 @@ class _EmployeeWaitingListScreenState extends State<EmployeeWaitingListScreen> {
     setState(() => isLoading = true);
     try {
       final endpoint = isAccept ? 'SubmitUserLogin' : 'RefuseUserLogin';
-      final response = await http.post(Uri.parse('https://nour-al-eman.runasp.net/api/Account/$endpoint?id=$id&type=2'));
+      final response = await http.post(Uri.parse('https://nourelman.runasp.net/api/Account/$endpoint?id=$id&type=2'));
       if (response.statusCode == 200) {
         await _fetchEmployees();
         if (mounted) {

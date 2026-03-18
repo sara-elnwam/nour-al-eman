@@ -69,7 +69,7 @@ class _StudentReportsScreenState extends State<StudentReportsScreen> with Single
 
   Future<void> _fetchLevels() async {
     try {
-      final response = await http.get(Uri.parse("https://nour-al-eman.runasp.net/api/Level/Getall"));
+      final response = await http.get(Uri.parse("https://nourelman.runasp.net/api/Level/Getall"));
       if (response.statusCode == 200) {
         var data = json.decode(utf8.decode(response.bodyBytes));
         setState(() {
@@ -84,7 +84,7 @@ class _StudentReportsScreenState extends State<StudentReportsScreen> with Single
 
   Future<void> _fetchStudents() async {
     try {
-      final response = await http.get(Uri.parse("https://nour-al-eman.runasp.net/api/Student/Getall")
+      final response = await http.get(Uri.parse("https://nourelman.runasp.net/api/Student/Getall")
       );
       if (response.statusCode == 200) {
         var data = json.decode(utf8.decode(response.bodyBytes));
@@ -101,7 +101,7 @@ class _StudentReportsScreenState extends State<StudentReportsScreen> with Single
 
   Future<void> _submitReportRequest() async {
     setState(() => isSubmitting = true);
-    final String apiUrl = "https://nour-al-eman.runasp.net/api/Reports/GetTestsReport"
+    final String apiUrl = "https://nourelman.runasp.net/api/Reports/GetTestsReport"
     ;
 
     Map<String, dynamic> body = {

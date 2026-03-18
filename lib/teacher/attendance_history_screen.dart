@@ -94,7 +94,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
         final prefsT = await SharedPreferences.getInstance();
         final String tokenT = prefsT.getString('user_token') ?? '';
         final urlById =
-            "https://nour-al-eman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=${prefsT.getString('user_guid') ?? ''}";
+            "https://nourelman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=${prefsT.getString('user_guid') ?? ''}";
         final responseById = await http.get(
           Uri.parse(urlById),
           headers: {
@@ -149,8 +149,19 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
     List<AttendanceData> validData = rawData
         .where((item) => _parseServerDate(item.date) != null)
         .toList();
-    validData.sort(
-            (a, b) => _parseServerDate(b.date)!.compareTo(_parseServerDate(a.date)!));
+    validData.sort((a, b) {
+      final dateA = _parseServerDate(a.date);
+      final dateB = _parseServerDate(b.date);
+      if (dateA == null && dateB == null) return 0;
+      if (dateA == null) return 1;
+      if (dateB == null) return -1;
+      final dateCmp = dateB.compareTo(dateA);
+      if (dateCmp != 0) return dateCmp;
+      // نفس اليوم → رتب بوقت الحضور (الأحدث أول)
+      final inA = a.checkInTime ?? '';
+      final inB = b.checkInTime ?? '';
+      return inB.compareTo(inA);
+    });
 
     // ✅ كل record يظهر على حدة - كل بصمة في سطر لوحده
     for (var entry in validData) {

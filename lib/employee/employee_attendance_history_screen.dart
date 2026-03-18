@@ -100,7 +100,7 @@ class _AttendanceHistoryScreenState
       try {
         final String token2 = prefs.getString('user_token') ?? '';
         final url =
-            "https://nour-al-eman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=${prefs.getString('user_guid') ?? ''}";
+            "https://nourelman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=${prefs.getString('user_guid') ?? ''}";
         debugPrint("📡 Fetching server: $url");
         final response = await http.get(
           Uri.parse(url),
@@ -160,9 +160,20 @@ class _AttendanceHistoryScreenState
         .where((item) => _parseServerDate(item.date) != null)
         .toList();
 
-    // ✅ كل record يظهر لوحده - مش بنعمل merge
-    validData.sort((a, b) =>
-        _parseServerDate(b.date)!.compareTo(_parseServerDate(a.date)!));
+    // ✅ ترتيب من الأحدث للأقدم (تاريخ + وقت الحضور)
+    validData.sort((a, b) {
+      final dateA = _parseServerDate(a.date);
+      final dateB = _parseServerDate(b.date);
+      if (dateA == null && dateB == null) return 0;
+      if (dateA == null) return 1;
+      if (dateB == null) return -1;
+      final dateCmp = dateB.compareTo(dateA);
+      if (dateCmp != 0) return dateCmp;
+      // نفس اليوم → رتب بوقت الحضور (الأحدث أول)
+      final inA = a.checkInTime ?? '';
+      final inB = b.checkInTime ?? '';
+      return inB.compareTo(inA);
+    });
 
     Map<String, List<AttendanceData>> groups = {};
     for (var entry in validData) {

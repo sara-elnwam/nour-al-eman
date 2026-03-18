@@ -44,25 +44,25 @@ class DefaultFirebaseOptions {
     apiKey: 'AIzaSyAhkHEFE-EmgDNuz4R-QfA0FXS1VJ7ijzE',
     appId: '1:133575437865:web:79770ac89bdaadb114b638',
     messagingSenderId: '133575437865',
-    projectId: 'nour-al-eman-app',
-    authDomain: 'nour-al-eman-app.firebaseapp.com',
-    storageBucket: 'nour-al-eman-app.firebasestorage.app',
+    projectId: 'nourelman-app',
+    authDomain: 'nourelman-app.firebaseapp.com',
+    storageBucket: 'nourelman-app.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyCigQenFQP-46ZFm7BR4Vww8OxSdy35LSs',
     appId: '1:133575437865:android:259fd384ede8c58714b638',
     messagingSenderId: '133575437865',
-    projectId: 'nour-al-eman-app',
-    storageBucket: 'nour-al-eman-app.firebasestorage.app',
+    projectId: 'nourelman-app',
+    storageBucket: 'nourelman-app.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDFCkN9YClTFrdtgfj3oMkLGkrS2LqubGU',
     appId: '1:133575437865:ios:1bd05cd371f05cad14b638',
     messagingSenderId: '133575437865',
-    projectId: 'nour-al-eman-app',
-    storageBucket: 'nour-al-eman-app.firebasestorage.app',
+    projectId: 'nourelman-app',
+    storageBucket: 'nourelman-app.firebasestorage.app',
     iosBundleId: 'com.example.project1',
   );
 
@@ -70,8 +70,8 @@ class DefaultFirebaseOptions {
     apiKey: 'AIzaSyDFCkN9YClTFrdtgfj3oMkLGkrS2LqubGU',
     appId: '1:133575437865:ios:1bd05cd371f05cad14b638',
     messagingSenderId: '133575437865',
-    projectId: 'nour-al-eman-app',
-    storageBucket: 'nour-al-eman-app.firebasestorage.app',
+    projectId: 'nourelman-app',
+    storageBucket: 'nourelman-app.firebasestorage.app',
     iosBundleId: 'com.example.project1',
   );
 
@@ -79,8 +79,8 @@ class DefaultFirebaseOptions {
     apiKey: 'AIzaSyAhkHEFE-EmgDNuz4R-QfA0FXS1VJ7ijzE',
     appId: '1:133575437865:web:07f494c6df02246614b638',
     messagingSenderId: '133575437865',
-    projectId: 'nour-al-eman-app',
-    authDomain: 'nour-al-eman-app.firebaseapp.com',
-    storageBucket: 'nour-al-eman-app.firebasestorage.app',
+    projectId: 'nourelman-app',
+    authDomain: 'nourelman-app.firebaseapp.com',
+    storageBucket: 'nourelman-app.firebasestorage.app',
   );
 }

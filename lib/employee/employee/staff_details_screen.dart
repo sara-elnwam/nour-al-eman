@@ -49,7 +49,7 @@ class _StaffDetailsScreenState extends State<StaffDetailsScreen> with SingleTick
 
       // تم تعديل الرابط هنا ليكون مطابقاً للرابط الصحيح وبدون شرطة
       final response = await http.get(
-        Uri.parse('https://nour-al-eman.runasp.net/api/Employee/GetById?id=${widget.staffId}'),
+        Uri.parse('https://nourelman.runasp.net/api/Employee/GetById?id=${widget.staffId}'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',

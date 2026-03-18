@@ -14,7 +14,7 @@ final Color darkBlue = Color(0xFF2E3542);
 final Color greyText = Color(0xFF707070);
 final Color successGreen = Color(0xFF2D8A63);
 
-const String baseUrl = 'https://nour-al-eman.runasp.net/api';
+const String baseUrl = 'https://nourelman.runasp.net/api';
 
 var logger = Logger();
 
@@ -864,7 +864,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
   Future<void> _fetchOffices() async {
     try {
       final response = await http.get(
-        Uri.parse('https://nour-al-eman.runasp.net/api/Location/GetAll'),
+        Uri.parse('https://nourelman.runasp.net/api/Location/GetAll'),
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -880,7 +880,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
   }
   Future<void> _fetchLocations() async {
     try {
-      final response = await http.get(Uri.parse('https://nour-al-eman.runasp.net/api/Locations/GetAll'));
+      final response = await http.get(Uri.parse('https://nourelman.runasp.net/api/Locations/GetAll'));
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
         setState(() {

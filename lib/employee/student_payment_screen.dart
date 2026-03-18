@@ -9,7 +9,7 @@ const Color _spBorder  = Color(0xFFE2E8F0);
 final Color _spOrange  = const Color(0xFFC66422);
 final Color _spDark    = const Color(0xFF2E3542);
 
-const String _apiBase = 'https://nour-al-eman.runasp.net';
+const String _apiBase = 'https://nourelman.runasp.net';
 
 // شهور عربية
 const List<String> _arabicMonths = [

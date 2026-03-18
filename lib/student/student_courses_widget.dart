@@ -63,7 +63,7 @@ class _StudentCoursesWidgetState extends State<StudentCoursesWidget> {
       // 3. بناء الرابط مع Timestamp لمنع الـ Caching
       // إضافة DateTime.now يجعل السيرفر يعامل كل ضغطة تحميل كأنها طلب جديد تماماً
       final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      final String finalUrl = "https://nour-al-eman.runasp.net/api/StudentCources/DownloadLatest"
+      final String finalUrl = "https://nourelman.runasp.net/api/StudentCources/DownloadLatest"
           "?levelId=$levelId&typeId=$typeId&courseId=$courseId&v=$timestamp";
 
       // 4. تحديد مسار الحفظ بشكل آمن

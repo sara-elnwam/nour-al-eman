@@ -1,8 +1,8 @@
 {
   "project_info": {
     "project_number": "133575437865",
-    "project_id": "nour-al-eman-app",
-    "storage_bucket": "nour-al-eman-app.firebasestorage.app"
+    "project_id": "nourelman-app",
+    "storage_bucket": "nourelman-app.firebasestorage.app"
   },
   "client": [
     {

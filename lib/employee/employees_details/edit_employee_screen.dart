@@ -58,8 +58,8 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
   Future<void> _fetchLocations() async {
     // جرب الـ endpoints المحتملة بالترتيب
     final endpoints = [
-      'https://nour-al-eman.runasp.net/api/Locations/GetAll',
-      'https://nour-al-eman.runasp.net/api/Location/GetAll',
+      'https://nourelman.runasp.net/api/Locations/GetAll',
+      'https://nourelman.runasp.net/api/Location/GetAll',
     ];
 
     for (final url in endpoints) {
@@ -89,7 +89,7 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
   Future<void> _fetchJobTitles() async {
     try {
       final response = await http.get(
-        Uri.parse('https://nour-al-eman.runasp.net/api/EmployeeType/GetAll'),
+        Uri.parse('https://nourelman.runasp.net/api/EmployeeType/GetAll'),
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -110,7 +110,7 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
   Future<void> _fetchEmployeeData() async {
     try {
       final response = await http.get(
-        Uri.parse('https://nour-al-eman.runasp.net/api/Employee/GetById?id=${widget.empId}')
+        Uri.parse('https://nourelman.runasp.net/api/Employee/GetById?id=${widget.empId}')
         ,
       );
 
@@ -200,7 +200,7 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
       };
 
       final response = await http.put(
-        Uri.parse('https://nour-al-eman.runasp.net/api/Employee/Update'), //
+        Uri.parse('https://nourelman.runasp.net/api/Employee/Update'), //
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',

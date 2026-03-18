@@ -47,7 +47,7 @@ class _GroupDetailsDashboardState extends State<GroupDetailsDashboard>
   }
 
   Future<void> _fetchStudents() async {
-    final String url = 'https://nour-al-eman.runasp.net/api/Group/GetGroupDetails?GroupId=${widget.groupId}&LevelId=${widget.levelId}';
+    final String url = 'https://nourelman.runasp.net/api/Group/GetGroupDetails?GroupId=${widget.groupId}&LevelId=${widget.levelId}';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -271,7 +271,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     }
   }
   Future<void> _fetchDetails() async {
-    final url = "https://nour-al-eman.runasp.net/api/Student/GetById?id=${widget.studentId}";
+    final url = "https://nourelman.runasp.net/api/Student/GetById?id=${widget.studentId}";
     try {
       final res = await http.get(Uri.parse(url));
       if (res.statusCode == 200) {
@@ -411,7 +411,7 @@ class _WeeklyQuestionsScreenState extends State<WeeklyQuestionsScreen> {
   }
 
   Future<void> _fetch() async {
-    final String url = "https://nour-al-eman.runasp.net/api/Student/GetAllExamBsedOnType?StId=${widget.studentId}&TypeId=1";
+    final String url = "https://nourelman.runasp.net/api/Student/GetAllExamBsedOnType?StId=${widget.studentId}&TypeId=1";
     try {
       final res = await http.get(Uri.parse(url));
       if (res.statusCode == 200) {
@@ -426,7 +426,7 @@ class _WeeklyQuestionsScreenState extends State<WeeklyQuestionsScreen> {
   }
 
   Future<void> _submitGrade(int examId, String grade, String note) async {
-    const String postUrl = "https://nour-al-eman.runasp.net/api/StudentCources/AddStudentExamAsync";
+    const String postUrl = "https://nourelman.runasp.net/api/StudentCources/AddStudentExamAsync";
     try {
       final response = await http.post(
         Uri.parse(postUrl),
@@ -650,7 +650,7 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
   Future<void> _fetch() async {
     setState(() => _isLoading = true);
     final String url =
-        "https://nour-al-eman.runasp.net/api/Student/GetAllExamBsedOnType?StId=${widget.studentId}&TypeId=2";
+        "https://nourelman.runasp.net/api/Student/GetAllExamBsedOnType?StId=${widget.studentId}&TypeId=2";
     try {
       final res = await http.get(Uri.parse(url));
       debugPrint("StudentExams API Response: ${res.body.substring(0, res.body.length > 300 ? 300 : res.body.length)}");
@@ -698,7 +698,7 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
     try {
       // أول محاولة: INSERT
       final postResponse = await http.post(
-        Uri.parse("https://nour-al-eman.runasp.net/api/StudentCources/AddStudentExamAsync"),
+        Uri.parse("https://nourelman.runasp.net/api/StudentCources/AddStudentExamAsync"),
         headers: {"Content-Type": "application/json", "Accept": "text/plain"},
         body: jsonEncode({
           "stId": widget.studentId,
@@ -726,7 +726,7 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
       if (isDuplicate) {
         debugPrint("🔄 Duplicate key detected, trying PUT UpdateStudentExam...");
         final putUri = Uri.parse(
-          "https://nour-al-eman.runasp.net/api/StudentCources/UpdateStudentExam"
+          "https://nourelman.runasp.net/api/StudentCources/UpdateStudentExam"
               "?StID=${widget.studentId}&ExamId=$examId&Grade=$gradeInt&Note=${Uri.encodeComponent(note)}",
         );
         final putResponse = await http.put(
@@ -839,7 +839,7 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
   }
 
   Future<void> _startDownload(String? relativeUrl, String examName) async {
-    String url = "https://nour-al-eman.runasp.net/api/StudentCources/DownloadLatest?levelId=${widget.levelId}&typeId=2";
+    String url = "https://nourelman.runasp.net/api/StudentCources/DownloadLatest?levelId=${widget.levelId}&typeId=2";
 
     try {
       final directory = Directory('/storage/emulated/0/Download');

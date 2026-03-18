@@ -78,7 +78,7 @@ class _AttendanceLogsTabState extends State<AttendanceLogsTab> {
     setState(() => _isLoading = true);
     try {
       // تم تعديل الرابط ليتعامل مع int بشكل سليم
-      final url = 'https://nour-al-eman.runasp.net/api/Locations/GetAll-employee-attendance-ByEmpId?EmpId=${widget.empId}';
+      final url = 'https://nourelman.runasp.net/api/Locations/GetAll-employee-attendance-ByEmpId?EmpId=${widget.empId}';
       final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {

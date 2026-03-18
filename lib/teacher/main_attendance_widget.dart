@@ -67,7 +67,7 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
   Future<void> _fetchOffices() async {
     try {
       final response = await http
-          .get(Uri.parse('https://nour-al-eman.runasp.net/api/Locations/Getall'));
+          .get(Uri.parse('https://nourelman.runasp.net/api/Locations/Getall'));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() => _apiOffices = data['data'] ?? data);
@@ -107,22 +107,19 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
       final localJson = prefs.getString(localKey);
       if (localJson != null) {
         final List<dynamic> localRecords = jsonDecode(localJson);
-        // ✅ FIX: جيب آخر record في النهارده مش أول واحد
-        dynamic lastTodayRec;
         for (var rec in localRecords) {
           final normalized = _normalizeDate(rec['date']?.toString());
           if (normalized == todayDate) {
-            lastTodayRec = rec;
+            // ✅ FIX: تحقق من check-out (مش "Out")
+            final bool hasCheckOut = (rec['checkOutTime'] != null &&
+                rec['checkOutTime'].toString().isNotEmpty) ||
+                rec['checkType'] == 'check-out';
+            if (mounted) {
+              setState(() => _checkType = hasCheckOut ? "check-in" : "check-out");
+            }
+            foundTodayLocally = true;
+            break;
           }
-        }
-        if (lastTodayRec != null) {
-          final bool hasCheckOut = (lastTodayRec['checkOutTime'] != null &&
-              lastTodayRec['checkOutTime'].toString().isNotEmpty) ||
-              lastTodayRec['checkType'] == 'check-out';
-          if (mounted) {
-            setState(() => _checkType = hasCheckOut ? "check-in" : "check-out");
-          }
-          foundTodayLocally = true;
         }
       }
 
@@ -132,7 +129,7 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
           if (userGuid.isEmpty) return;
           final String tokenStatus = prefs.getString('user_token') ?? '';
           final url =
-              'https://nour-al-eman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=$userGuid';
+              'https://nourelman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=$userGuid';
           final response = await http.get(
             Uri.parse(url),
             headers: {
@@ -143,20 +140,16 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
           if (response.statusCode == 200) {
             final data = json.decode(response.body);
             final List<dynamic> logs = data['data'] ?? [];
-            // ✅ FIX: جيب آخر record في النهارده من السيرفر
-            dynamic lastServerRec;
             for (var log in logs) {
               final String? normalized = _normalizeDate(log['date']?.toString());
               if (normalized == todayDate) {
-                lastServerRec = log;
-              }
-            }
-            if (lastServerRec != null) {
-              final bool hasCheckOut = lastServerRec['checkOutTime'] != null &&
-                  lastServerRec['checkOutTime'].toString().isNotEmpty &&
-                  lastServerRec['checkOutTime'].toString() != "--";
-              if (mounted) {
-                setState(() => _checkType = hasCheckOut ? "check-in" : "check-out");
+                final bool hasCheckOut = log['checkOutTime'] != null &&
+                    log['checkOutTime'].toString().isNotEmpty &&
+                    log['checkOutTime'].toString() != "--";
+                if (mounted) {
+                  setState(() => _checkType = hasCheckOut ? "check-in" : "check-out");
+                }
+                break;
               }
             }
           }
@@ -329,15 +322,16 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
       debugPrint("ATTENDANCE REQUEST: ${json.encode(attendanceData)}");
 
       final String token = prefs.getString('user_token') ?? '';
-      debugPrint('🔑 Token: $token');
+      // ✅ FIX: لو الـ token فاضي أو no_token → مش ترسله خالص
+      final bool hasToken = token.isNotEmpty && token != 'no_token';
+      debugPrint('🔑 Token exists: \$hasToken');
 
       final response = await http.post(
         Uri.parse(
-            'https://nour-al-eman.runasp.net/api/Locations/employee-attendance'),
+            'https://nourelman.runasp.net/api/Locations/employee-attendance'),
         headers: {
           'Content-Type': 'application/json',
-          if (token.isNotEmpty && token != 'no_token')
-            'Authorization': 'Bearer $token',
+          if (hasToken) 'Authorization': 'Bearer \$token',
         },
         body: json.encode(attendanceData),
       );
@@ -350,23 +344,24 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
         final dynamic error = responseData['error'];
         final dynamic dataVal = responseData['data'];
 
-        await _saveLocally(prefs, rawId);
-
-        if ((error != null &&
+        // ✅ FIX: لو فيه error حقيقي من السيرفر → احفظ محلي بس ومتقلبش الـ state
+        final bool hasServerError = (error != null &&
             error.toString().isNotEmpty &&
             error.toString() != "null") ||
             (dataVal is String &&
-                dataVal.toString().toLowerCase().contains('invalid'))) {
-          _showSnackBar(
-            _checkType == "check-in"
-                ? "✅ تم تسجيل الحضور بنجاح"
-                : "✅ تم تسجيل الانصراف بنجاح",
-            Colors.green,
-          );
-          _flipCheckType();
+                (dataVal.toString().toLowerCase().contains('conflict') ||
+                    dataVal.toString().toLowerCase().contains('does not') ||
+                    dataVal.toString().toLowerCase().contains('invalid') ||
+                    dataVal.toString().toLowerCase().contains('error')));
+
+        if (hasServerError) {
+          await _saveLocally(prefs, rawId);
+          _showSnackBar("⚠️ تم الحفظ محلياً - خطأ في السيرفر", Colors.orange);
           return;
         }
 
+        // ✅ نجاح حقيقي
+        await _saveLocally(prefs, rawId);
         _showSnackBar(
           _checkType == "check-in"
               ? "✅ تم تسجيل الحضور بنجاح"

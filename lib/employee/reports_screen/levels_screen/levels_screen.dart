@@ -29,7 +29,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
     if (mounted) setState(() => _isLoading = true);
     try {
       final response = await http.get(
-        Uri.parse('https://nour-al-eman.runasp.net/api/Level/Getall'),
+        Uri.parse('https://nourelman.runasp.net/api/Level/Getall'),
       );
       if (response.statusCode == 200) {
         final decodedData = jsonDecode(response.body);
@@ -56,7 +56,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
     }
     try {
       final response = await http.post(
-        Uri.parse('https://nour-al-eman.runasp.net/api/Level/Save'),
+        Uri.parse('https://nourelman.runasp.net/api/Level/Save'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"name": name.trim(), "active": true}),
       );

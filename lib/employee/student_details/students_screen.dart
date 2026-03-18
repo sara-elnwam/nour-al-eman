@@ -40,7 +40,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
 
-      final url = Uri.parse('https://nour-al-eman.runasp.net/api/Student/GetByStatus?status=true');
+      final url = Uri.parse('https://nourelman.runasp.net/api/Student/GetByStatus?status=true');
 
       final response = await http.get(
         url,
@@ -69,7 +69,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
 
-      final url = Uri.parse('https://nour-al-eman.runasp.net/api/Student/ResetPassword');
+      final url = Uri.parse('https://nourelman.runasp.net/api/Student/ResetPassword');
 
       final response = await http.post(
         url,
@@ -99,7 +99,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
       String? token = prefs.getString('token');
 
 
-      final url = Uri.parse('https://nour-al-eman.runasp.net/api/Account/DeActivate?id=$studentId&type=0');
+      final url = Uri.parse('https://nourelman.runasp.net/api/Account/DeActivate?id=$studentId&type=0');
 
       final response = await http.post(
         url,
