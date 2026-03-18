@@ -128,7 +128,7 @@ class _AddCurriculumItemScreenState extends State<AddCurriculumItemScreen> {
 
   Future<void> _fetchLevels() async {
     try {
-      final response = await http.get(Uri.parse('https://nourelman.runasp.net/api/Level/GetAll'));
+      final response = await http.get(Uri.parse('https://nour-al-eman.runasp.net/api/Level/GetAll'));
       if (response.statusCode == 200) {
         final data = CurriculumResponse.fromJson(json.decode(response.body));
         setState(() {
@@ -163,7 +163,7 @@ class _AddCurriculumItemScreenState extends State<AddCurriculumItemScreen> {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('https://nourelman.runasp.net/api/StudentCources/Save'),
+        Uri.parse('https://nour-al-eman.runasp.net/api/StudentCources/Save'),
       );
 
       request.fields['Name'] = _nameController.text;

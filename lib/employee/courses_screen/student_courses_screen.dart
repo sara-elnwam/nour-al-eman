@@ -29,12 +29,9 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
   String? selectedFileName;
 
 
-  final List<Map<String, dynamic>> levelsData = [
-    {"name": "المستوى الأول", "id": "1"},
-    {"name": "المستوى الثاني", "id": "2"},
-    {"name": "المستوى الثالث", "id": "3"},
-    {"name": "المستوى الرابع", "id": "4"},
-  ];
+  // المستويات (ديناميكية من API)
+  List<dynamic> _levelsList = [];
+  bool _isLoadingLevels = true;
 
   final List<Map<String, dynamic>> tabItems = [
     {'title': 'الاختبارات', 'id': 5},
@@ -47,15 +44,35 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
   @override
   void initState() {
     super.initState();
+    _fetchLevels();
     fetchData(tabItems[4]['id']);
   }
 
+
+  Future<void> _fetchLevels() async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://nour-al-eman.runasp.net/api/Level/Getall'),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(utf8.decode(response.bodyBytes));
+        setState(() {
+          _levelsList = data['data'] is List ? data['data'] : [];
+          _isLoadingLevels = false;
+        });
+      } else {
+        setState(() => _isLoadingLevels = false);
+      }
+    } catch (e) {
+      setState(() => _isLoadingLevels = false);
+    }
+  }
 
   Future<void> fetchData(int typeId) async {
     setState(() => isLoading = true);
     try {
       final response = await http.get(
-        Uri.parse("https://nourelman.runasp.net/api/StudentCources/GetAll?type=$typeId")
+        Uri.parse("https://nour-al-eman.runasp.net/api/StudentCources/GetAll?type=$typeId")
         ,
       );
       if (response.statusCode == 200) {
@@ -75,7 +92,7 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
     try {
 
       final response = await http.post(
-        Uri.parse("https://nourelman.runasp.net/api/StudentCources/Delete?id=$id"),
+        Uri.parse("https://nour-al-eman.runasp.net/api/StudentCources/Delete?id=$id"),
       );
 
       if (response.statusCode == 200) {
@@ -105,7 +122,7 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
 
     final String endpoint = isEdit ? "Update" : "Save";
 
-    final String url = "https://nourelman.runasp.net/api/StudentCources/$endpoint"
+    final String url = "https://nour-al-eman.runasp.net/api/StudentCources/$endpoint"
 
         "?Name=${Uri.encodeComponent(nameController.text)}"
         "&Description=${Uri.encodeComponent(descController.text)}"
@@ -158,7 +175,7 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
       return;
     }
 
-    final String url = "https://nourelman.runasp.net/api/StudentCources/Save"
+    final String url = "https://nour-al-eman.runasp.net/api/StudentCources/Save"
 
         "?Name=${nameController.text}"
         "&Description=${descController.text}"
@@ -326,10 +343,15 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
 
                 // دروب داون المستويات
                 const Align(alignment: Alignment.centerRight, child: Text("المستوى*", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
-                DropdownButton<String>(
+                _isLoadingLevels
+                    ? const Center(child: Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator()))
+                    : DropdownButton<String>(
                   isExpanded: true,
-                  value: selectedLevelId,
-                  items: levelsData.map((e) => DropdownMenuItem(value: e['id'].toString(), child: Text(e['name']))).toList(),
+                  value: _levelsList.any((l) => l['id'].toString() == selectedLevelId) ? selectedLevelId : null,
+                  items: _levelsList.map((l) => DropdownMenuItem(
+                    value: l['id'].toString(),
+                    child: Text(l['name']?.toString() ?? ""),
+                  )).toList(),
                   onChanged: (val) => setModalState(() => selectedLevelId = val),
                 ),
 

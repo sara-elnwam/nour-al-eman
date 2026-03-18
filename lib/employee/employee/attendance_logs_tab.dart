@@ -114,7 +114,7 @@ class _AttendanceLogsTabState extends State<AttendanceLogsTab> {
         final String userGuid2 = prefs2.getString('user_guid') ?? '';
         if (userGuid2.isEmpty) return;
         final url =
-            'https://nourelman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=$userGuid2';
+            'https://nour-al-eman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=$userGuid2';
         final response = await http.get(
           Uri.parse(url),
           headers: {

@@ -24,7 +24,7 @@ class _StudentWaitingListScreenState extends State<StudentWaitingListScreen> {
   Future<void> _fetchStudents() async {
     try {
       setState(() => isLoading = true);
-      final response = await http.get(Uri.parse('https://nourelman.runasp.net/api/Student/GetByStatus?status=false'));
+      final response = await http.get(Uri.parse('https://nour-al-eman.runasp.net/api/Student/GetByStatus?status=false'));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() { allStudents = data is List ? data : []; filteredStudents = allStudents; isLoading = false; });
@@ -45,7 +45,7 @@ class _StudentWaitingListScreenState extends State<StudentWaitingListScreen> {
     setState(() => isLoading = true);
     try {
       final endpoint = isAccept ? 'SubmitUserLogin' : 'RefuseUserLogin';
-      final response = await http.post(Uri.parse('https://nourelman.runasp.net/api/Account/$endpoint?id=$id&type=0'));
+      final response = await http.post(Uri.parse('https://nour-al-eman.runasp.net/api/Account/$endpoint?id=$id&type=0'));
       if (response.statusCode == 200) {
         await _fetchStudents();
         if (mounted) {

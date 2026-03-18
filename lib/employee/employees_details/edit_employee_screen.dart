@@ -26,28 +26,22 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
 
   PlatformFile? _pickedFile;
 
-  //  المواقع
-  final Map<String, int> _locationsMap = {
-    "مدرسة نور الإيمان": 2,
-    "rouby's location": 3,
-    "مسجد الشيخ ابراهيم": 4,
-    "مسجد العباسي": 5,
-    "مسجد الهدى والنور": 6,
-    "مضيفة نافع": 7,
-    "مكتب الموقف": 8,
-  };
+  // المواقع (ديناميكية من API)
+  List<dynamic> _locationsList = [];
+  bool _isLoadingLocations = true;
 
-  final Map<String, int> _jobTitlesMap = {
-    "معلم/ معلمه": 1,
-    "إدارة": 2,
-    "محاسب": 3,
-  };
+  // المسميات الوظيفية (ديناميكية من API)
+  List<dynamic> _jobTitlesList = [];
+  bool _isLoadingJobTitles = true;
+
   int? _selectedLocationId;
   int? _selectedJobTypeId;
 
   @override
   void initState() {
     super.initState();
+    _fetchLocations();
+    _fetchJobTitles();
     _fetchEmployeeData();
   }
 
@@ -61,10 +55,62 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
     super.dispose();
   }
 
+  Future<void> _fetchLocations() async {
+    // جرب الـ endpoints المحتملة بالترتيب
+    final endpoints = [
+      'https://nour-al-eman.runasp.net/api/Locations/GetAll',
+      'https://nour-al-eman.runasp.net/api/Location/GetAll',
+    ];
+
+    for (final url in endpoints) {
+      print("DEBUG: جاري تجربة $url");
+      try {
+        final response = await http.get(Uri.parse(url));
+        print("DEBUG: status = ${response.statusCode} | body = ${response.body}");
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          final list = data is List ? data : (data['data'] ?? []);
+          print("DEBUG: نجح الـ endpoint: $url | عدد المواقع = ${list.length}");
+          setState(() {
+            _locationsList = list;
+            _isLoadingLocations = false;
+          });
+          return;
+        }
+      } catch (e) {
+        print("DEBUG: خطأ في $url => $e");
+      }
+    }
+
+    print("DEBUG: كل الـ endpoints فشلت!");
+    setState(() => _isLoadingLocations = false);
+  }
+
+  Future<void> _fetchJobTitles() async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://nour-al-eman.runasp.net/api/EmployeeType/GetAll'),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final list = data is List ? data : (data['data'] ?? []);
+        setState(() {
+          _jobTitlesList = list;
+          _isLoadingJobTitles = false;
+        });
+      } else {
+        setState(() => _isLoadingJobTitles = false);
+      }
+    } catch (e) {
+      print("DEBUG: خطأ في جلب المسميات الوظيفية = $e");
+      setState(() => _isLoadingJobTitles = false);
+    }
+  }
+
   Future<void> _fetchEmployeeData() async {
     try {
       final response = await http.get(
-        Uri.parse('https://nourelman.runasp.net/api/Employee/GetById?id=${widget.empId}')
+        Uri.parse('https://nour-al-eman.runasp.net/api/Employee/GetById?id=${widget.empId}')
         ,
       );
 
@@ -154,7 +200,7 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
       };
 
       final response = await http.put(
-        Uri.parse('https://nourelman.runasp.net/api/Employee/Update'), //
+        Uri.parse('https://nour-al-eman.runasp.net/api/Employee/Update'), //
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -221,11 +267,16 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
                 _buildTextField(_nationalIdController, isNumber: true, validator: (v) => v!.length < 14 ? "يجب أن يكون 14 رقم" : null),
 
                 _buildFieldLabel("المكتب التابع له *"),
-                _buildDropdownField(
-                  value: _selectedLocationId,
-                  items: _locationsMap.entries.map((e) => DropdownMenuItem<int>(
-                    value: e.value,
-                    child: Text(e.key, style: const TextStyle(fontSize: 14, fontFamily: 'Almarai')),
+                _isLoadingLocations
+                    ? const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+                    : _buildDropdownField(
+                  value: _locationsList.any((l) => (l['id'] as num).toInt() == _selectedLocationId) ? _selectedLocationId : null,
+                  items: _locationsList.map<DropdownMenuItem<int>>((loc) => DropdownMenuItem<int>(
+                    value: (loc['id'] as num).toInt(),
+                    child: Text(loc['name']?.toString() ?? "", style: const TextStyle(fontSize: 14, fontFamily: 'Almarai')),
                   )).toList(),
                   onChanged: (val) {
                     setState(() {
@@ -249,16 +300,20 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
                 }),
 
                 _buildFieldLabel("المسمى الوظيفي *"),
-                _buildDropdownField(
-                  // نستخدم الـ ID كقيمة مختارة
-                  value: _selectedJobTypeId,
-                  items: _jobTitlesMap.entries.map((e) => DropdownMenuItem<int>(
-                    value: e.value,
-                    child: Text(e.key, style: const TextStyle(fontSize: 14, fontFamily: 'Almarai')),
+                _isLoadingJobTitles
+                    ? const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+                    : _buildDropdownField(
+                  value: _jobTitlesList.any((j) => (j['id'] as num).toInt() == _selectedJobTypeId) ? _selectedJobTypeId : null,
+                  items: _jobTitlesList.map<DropdownMenuItem<int>>((job) => DropdownMenuItem<int>(
+                    value: (job['id'] as num).toInt(),
+                    child: Text(job['name']?.toString() ?? "", style: const TextStyle(fontSize: 14, fontFamily: 'Almarai')),
                   )).toList(),
                   onChanged: (val) {
                     setState(() {
-                      _selectedJobTypeId = val; // نخزن الـ ID المختار
+                      _selectedJobTypeId = val;
                     });
                   },
                 ),
@@ -315,12 +370,12 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
     );
   }
 
-  Widget _buildDropdownField({dynamic value, required List<DropdownMenuItem<dynamic>> items, required Function(dynamic) onChanged}) {
+  Widget _buildDropdownField({int? value, required List<DropdownMenuItem<int>> items, required Function(int?) onChanged}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.grey[300]!), borderRadius: BorderRadius.circular(8)),
       child: DropdownButtonHideUnderline(
-        child: DropdownButton<dynamic>(
+        child: DropdownButton<int>(
           value: value,
           isExpanded: true,
           hint: const Text("اختر...", style: TextStyle(fontSize: 12, color: Colors.grey)),

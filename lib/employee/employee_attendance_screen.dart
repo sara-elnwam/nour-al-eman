@@ -67,7 +67,7 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
   Future<void> _fetchOffices() async {
     try {
       final response = await http
-          .get(Uri.parse('https://nourelman.runasp.net/api/Locations/Getall'));
+          .get(Uri.parse('https://nour-al-eman.runasp.net/api/Locations/Getall'));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() => _apiOffices = data['data'] ?? data);
@@ -129,7 +129,7 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
           if (userGuid.isEmpty) return;
           final String tokenStatus = prefs.getString('user_token') ?? '';
           final url =
-              'https://nourelman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=$userGuid';
+              'https://nour-al-eman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=$userGuid';
           final response = await http.get(
             Uri.parse(url),
             headers: {
@@ -326,7 +326,7 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
 
       final response = await http.post(
         Uri.parse(
-            'https://nourelman.runasp.net/api/Locations/employee-attendance'),
+            'https://nour-al-eman.runasp.net/api/Locations/employee-attendance'),
         headers: {
           'Content-Type': 'application/json',
           if (token.isNotEmpty && token != 'no_token')

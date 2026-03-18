@@ -37,9 +37,9 @@ class _TeacherReportsScreenState extends State<TeacherReportsScreen> with Single
 
   Future<void> _loadInitialData() async {
     try {
-      final resTeachers = await http.get(Uri.parse("https://nourelman.runasp.net/api/Employee/Getall")
+      final resTeachers = await http.get(Uri.parse("https://nour-al-eman.runasp.net/api/Employee/Getall")
       );
-      final resLevels = await http.get(Uri.parse("https://nourelman.runasp.net/api/Level/Getall")
+      final resLevels = await http.get(Uri.parse("https://nour-al-eman.runasp.net/api/Level/Getall")
       );
 
       if (!mounted) return;
@@ -73,7 +73,7 @@ class _TeacherReportsScreenState extends State<TeacherReportsScreen> with Single
       String endpoint = type == "groups" ? "Teacher/GroupsReport" : "Teacher/AbsenceReport";
 
       final response = await http.post(
-        Uri.parse("https://nourelman.runasp.net/api/$endpoint"),
+        Uri.parse("https://nour-al-eman.runasp.net/api/$endpoint"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "teacherId": selectedTeacher?.id,

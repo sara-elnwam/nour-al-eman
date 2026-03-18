@@ -8,7 +8,7 @@ import 'dart:ui' as ui;
 // تعريفات الألوان والمقاسات
 final Color primaryOrange = Color(0xFFC66422);
 final Color darkBlue = Color(0xFF2E3542);
-final String baseUrl = 'https://nourelman.runasp.net/api';
+final String baseUrl = 'https://nour-al-eman.runasp.net/api';
 
 class EditStudentScreen extends StatefulWidget {
   final int studentId;

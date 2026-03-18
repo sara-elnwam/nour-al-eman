@@ -61,7 +61,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen>
       String? token = prefs.getString('token');
 
       final response = await http.get(
-        Uri.parse('https://nourelman.runasp.net/api/Student/GetById?id=${widget.studentId}'),
+        Uri.parse('https://nour-al-eman.runasp.net/api/Student/GetById?id=${widget.studentId}'),
         headers: {'Authorization': 'Bearer $token'},
       );
 

@@ -8,17 +8,18 @@ import 'employee_attendance_screen.dart';
 import 'student_details/students_screen.dart';
 import 'employees_details/all_employees_screen.dart';
 import 'employee_attendance_history_screen.dart';
-import 'reports_screen/reports_screen.dart'; // تأكد من اسم الملف
+import 'reports_screen/reports_screen.dart';
 import 'staff_management_screen/staff_management_screen.dart';
 import 'waiting_list_screen/waiting_list_screen.dart';
-import 'courses_screen/courses_screen.dart'; // تأكد من المسار الصحيح
-import 'branches_screen/branches_screen.dart'; // تأكد من المسار الصحيح
-// هذا هو المسار الصحيح بناءً على هيكلة المجلدات عندك
+import 'courses_screen/courses_screen.dart';
+import 'branches_screen/branches_screen.dart';
 import 'employee/employees_screen.dart';
 import 'employee_attendance_screen.dart';
 import 'employee_attendance_history_screen.dart';
 import 'reports_screen/levels_screen/levels_screen.dart';
-
+import 'facility_type_screen.dart'; // ✅ شاشة أنواع المصروفات
+import 'expenses_screen.dart';      // ✅ شاشة المصروفات
+import 'expenses_hub_screen.dart';  // ✅ هاب المصروفات
 
 
 final Color primaryOrange = Color(0xFFC66422);
@@ -34,11 +35,10 @@ class EmployeeHomeScreen extends StatefulWidget {
 
 class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
   String _currentTitle = "الصفحة الرئيسية";
-  int _currentIndex = 0; // تتبع الفهرس الحالي للشاشة المعروضة
+  int _currentIndex = 0;
   bool _isLoading = true;
   EmployeeData? employeeData;
   Map<String, dynamic>? _rawResponse;
-  // مفتاح لإعادة بناء شاشة السجل كل مرة تُفتح
   Key _historyKey = UniqueKey();
 
   @override
@@ -61,7 +61,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
       }
 
       final profileResponse = await http.get(
-        Uri.parse('https://nourelman.runasp.net/api/Employee/GetById?id=$numericId'),
+        Uri.parse('https://nour-al-eman.runasp.net/api/Employee/GetById?id=$numericId'),
       );
 
       debugPrint("📥 Status: ${profileResponse.statusCode}");
@@ -76,7 +76,6 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
             employeeData = employeeModel.data;
           });
         }
-        // ✅ احفظ locId عشان شاشة الحضور تستخدمه في التسجيل
         final locId = decodedData['data']?['locId'];
         if (locId != null) {
           await prefs.setInt('user_loc_id', locId as int);
@@ -89,11 +88,11 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
   void _onItemTapped(String title, int index) {
     setState(() {
       _currentIndex = index;
       _currentTitle = title;
-      // إذا فتح المستخدم شاشة السجل، نجدد الـ key عشان تعمل refresh تلقائي
       if (index == 2) {
         _historyKey = UniqueKey();
       }
@@ -116,25 +115,24 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
           iconTheme: IconThemeData(color: darkBlue),
         ),
         drawer: _buildEmployeeSidebar(context),
-        // استخدام IndexedStack لتبديل المحتوى مع بقاء السايدبار متاحاً
         body: _isLoading
             ? const Center(child: CircularProgressIndicator(color: kActiveBlue))
-            : // داخل ملف employee_home_screen.dart
-        IndexedStack(
+            : IndexedStack(
           index: _currentIndex,
           children: [
             MainAttendanceScreen(),                              // 0
             _buildPersonalDataContent(),                         // 1
-            EmployeeAttendanceHistoryScreen(key: _historyKey),   // 2 - بيتجدد كل مرة تُفتح
+            EmployeeAttendanceHistoryScreen(key: _historyKey),   // 2
             StudentsScreen(),                                    // 3
-            AllEmployeesScreen(),                // 4
-            EmployeesScreen(),                   // 5 <--- تم الربط هنا (صفحة المعلمين)
-            LevelsScreen(),                      // 6
-            const BranchesScreen(),              // 7
-            const CoursesScreen(),               // 8
-            WaitingListScreen(),                 // 9
-            StaffManagementScreen(),             // 10
-            ReportsScreen(),                     // 11
+            AllEmployeesScreen(),                                // 4
+            EmployeesScreen(),                                   // 5
+            LevelsScreen(),                                      // 6
+            const BranchesScreen(),                              // 7
+            const CoursesScreen(),                               // 8
+            WaitingListScreen(),                                 // 9
+            StaffManagementScreen(),                             // 10
+            ReportsScreen(),                                     // 11
+            const ExpensesHubScreen(),                           // 12 ✅ هاب المصروفات
           ],
         ),
       ),
@@ -232,7 +230,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
             child: Center(
                 child: Image.asset('assets/full_logo.png',
                     height: 80,
-                    errorBuilder: (c,e,s) => const Icon(Icons.business, size: 50, color: kActiveBlue)
+                    errorBuilder: (c, e, s) => const Icon(Icons.business, size: 50, color: kActiveBlue)
                 )
             ),
           ),
@@ -252,6 +250,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
                   _buildSidebarItem(Icons.hourglass_empty, "قائمة الإنتظار", 9),
                   _buildSidebarItem(Icons.manage_accounts_outlined, "إدارة الموظفين", 10),
                   _buildSidebarItem(Icons.assessment_outlined, "التقارير", 11),
+                  _buildSidebarItem(Icons.account_balance_wallet_outlined, "المصروفات", 12),
                 ],
               ),
             ),
@@ -292,7 +291,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
             if (isLogout) {
               _showLogoutDialog();
             } else {
-              _onItemTapped(title, index); // استخدام التبديل الداخلي بدلاً من Navigator.push
+              _onItemTapped(title, index);
             }
           },
         ),
@@ -325,7 +324,6 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
               ),
               onPressed: () async {
                 final prefs = await SharedPreferences.getInstance();
-                // ✅ احتفظ بسجلات الحضور المحلية - امسح بس بيانات الـ session
                 final allKeys = prefs.getKeys();
                 for (final key in allKeys) {
                   if (!key.startsWith('local_attendance_')) {

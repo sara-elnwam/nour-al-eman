@@ -118,7 +118,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
   Future<void> _fetchAndFillForm() async {
     if (mounted) setState(() => _isLoading = true);
     try {
-      final url = "https://nourelman.runasp.net/api/Group/GetGroupAttendace?GroupId=${widget.groupId}";
+      final url = "https://nour-al-eman.runasp.net/api/Group/GetGroupAttendace?GroupId=${widget.groupId}";
       final res = await http.get(Uri.parse(url));
       if (res.statusCode != 200) return;
 
@@ -209,7 +209,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
 
     try {
       final res = await http.post(
-        Uri.parse("https://nourelman.runasp.net/api/StudentAttendance/submit"),
+        Uri.parse("https://nour-al-eman.runasp.net/api/StudentAttendance/submit"),
         headers: {"accept": "*/*", "Content-Type": "application/json"},
         body: jsonEncode(payload),
       );
@@ -231,7 +231,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
 
   Future<void> _fetchHistoryOnly() async {
     try {
-      final url = "https://nourelman.runasp.net/api/Group/GetGroupAttendace?GroupId=${widget.groupId}";
+      final url = "https://nour-al-eman.runasp.net/api/Group/GetGroupAttendace?GroupId=${widget.groupId}";
       final res = await http.get(Uri.parse(url));
       if (res.statusCode != 200) return;
 

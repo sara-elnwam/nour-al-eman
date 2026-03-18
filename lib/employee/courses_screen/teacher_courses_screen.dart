@@ -32,7 +32,7 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen> {
     setState(() => isLoading = true);
     try {
       final response = await http.get(
-        Uri.parse("https://nourelman.runasp.net/api/EmployeeCources/GetAll")
+        Uri.parse("https://nour-al-eman.runasp.net/api/EmployeeCources/GetAll")
         ,
       );
 
@@ -55,7 +55,7 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen> {
   // الإضافة والتعديل - تم تعديل الـ Method للتعديل ليكون PUT بناءً على صور الـ DevTools
   Future<void> submitData({required bool isEdit, int? id}) async {
     final String endpoint = isEdit ? "Update" : "Save";
-    final String url = "https://nourelman.runasp.net/api/EmployeeCources/$endpoint"
+    final String url = "https://nour-al-eman.runasp.net/api/EmployeeCources/$endpoint"
     ;
 
     try {
@@ -94,7 +94,7 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen> {
   Future<void> deleteItem(int id) async {
     try {
       final response = await http.post(
-        Uri.parse("https://nourelman.runasp.net/api/EmployeeCources/Delete?id=$id")
+        Uri.parse("https://nour-al-eman.runasp.net/api/EmployeeCources/Delete?id=$id")
         ,
       );
       if (response.statusCode == 200) {

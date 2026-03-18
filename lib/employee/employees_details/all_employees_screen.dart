@@ -40,7 +40,7 @@ class _AllEmployeesScreenState extends State<AllEmployeesScreen> {
     setState(() => _isLoading = true);
     try {
       final response = await http.get(
-        Uri.parse('https://nourelman.runasp.net/api/Employee/GetWithType?type=2')
+        Uri.parse('https://nour-al-eman.runasp.net/api/Employee/GetWithType?type=2')
         ,
       );
       if (response.statusCode == 200) {
@@ -70,7 +70,7 @@ class _AllEmployeesScreenState extends State<AllEmployeesScreen> {
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
 
-      final url =Uri.parse('https://nourelman.runasp.net/api/Student/ResetPassword')
+      final url =Uri.parse('https://nour-al-eman.runasp.net/api/Student/ResetPassword')
       ;
 
       final response = await http.post(
@@ -98,7 +98,7 @@ class _AllEmployeesScreenState extends State<AllEmployeesScreen> {
   Future<void> _deleteEmployee(int id) async {
     try {
       final response = await http.post(
-        Uri.parse('https://nourelman.runasp.net/api/Account/DeActivate?id=$id&type=2')
+        Uri.parse('https://nour-al-eman.runasp.net/api/Account/DeActivate?id=$id&type=2')
         ,
       );
       if (response.statusCode == 200) {

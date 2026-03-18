@@ -100,7 +100,7 @@ class _AttendanceHistoryScreenState
       try {
         final String token2 = prefs.getString('user_token') ?? '';
         final url =
-            "https://nourelman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=${prefs.getString('user_guid') ?? ''}";
+            "https://nour-al-eman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=${prefs.getString('user_guid') ?? ''}";
         debugPrint("📡 Fetching server: $url");
         final response = await http.get(
           Uri.parse(url),

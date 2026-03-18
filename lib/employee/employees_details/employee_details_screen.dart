@@ -30,7 +30,7 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
   Future<void> _fetchDetails() async {
     try {
       final response = await http.get(
-        Uri.parse('https://nourelman.runasp.net/api/Employee/GetById?id=${widget.empId}'),
+        Uri.parse('https://nour-al-eman.runasp.net/api/Employee/GetById?id=${widget.empId}'),
       );
 
       // ✅ تأكد إن الـ widget لسه موجود قبل setState

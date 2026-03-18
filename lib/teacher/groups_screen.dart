@@ -41,7 +41,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
 
       // 3. الطلب من السيرفر باستخدام الـ ID الديناميكي
       final response = await http.get(
-          Uri.parse('https://nourelman.runasp.net/api/Group/GetAllEmployeeGroups?EmpId=$empId')      );
+          Uri.parse('https://nour-al-eman.runasp.net/api/Group/GetAllEmployeeGroups?EmpId=$empId')      );
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonData = json.decode(response.body);
