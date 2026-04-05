@@ -51,7 +51,7 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
   Future<void> _fetchLevels() async {
     try {
       final response = await http.get(
-        Uri.parse('https://nourelman.runasp.net/api/Level/Getall'),
+        Uri.parse('https://nour-al-eman.runasp.net/api/Level/Getall'),
       );
       if (response.statusCode == 200) {
         final data = json.decode(utf8.decode(response.bodyBytes));
@@ -71,7 +71,7 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
     setState(() => isLoading = true);
     try {
       final response = await http.get(
-        Uri.parse("https://nourelman.runasp.net/api/StudentCources/GetAll?type=$typeId")
+        Uri.parse("https://nour-al-eman.runasp.net/api/StudentCources/GetAll?type=$typeId")
         ,
       );
       if (response.statusCode == 200) {
@@ -91,7 +91,7 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
     try {
 
       final response = await http.post(
-        Uri.parse("https://nourelman.runasp.net/api/StudentCources/Delete?id=$id"),
+        Uri.parse("https://nour-al-eman.runasp.net/api/StudentCources/Delete?id=$id"),
       );
 
       if (response.statusCode == 200) {
@@ -121,7 +121,7 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
 
     final String endpoint = isEdit ? "Update" : "Save";
 
-    final String url = "https://nourelman.runasp.net/api/StudentCources/$endpoint"
+    final String url = "https://nour-al-eman.runasp.net/api/StudentCources/$endpoint"
 
         "?Name=${Uri.encodeComponent(nameController.text)}"
         "&Description=${Uri.encodeComponent(descController.text)}"
@@ -174,7 +174,7 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
       return;
     }
 
-    final String url = "https://nourelman.runasp.net/api/StudentCources/Save"
+    final String url = "https://nour-al-eman.runasp.net/api/StudentCources/Save"
 
         "?Name=${nameController.text}"
         "&Description=${descController.text}"

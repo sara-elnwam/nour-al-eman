@@ -112,7 +112,7 @@ class _EmployeeAttendanceTabState extends State<EmployeeAttendanceTab> {
       // ✅ endpoint الصح للـ check-in/check-out
       try {
         final url =
-            'https://nourelman.runasp.net/api/Locations/GetAll-employee-attendance-ByEmpId?EmpId=${widget.empId}';
+            'https://nour-al-eman.runasp.net/api/Locations/GetAll-employee-attendance-ByEmpId?EmpId=${widget.empId}';
         final prefs2 = await SharedPreferences.getInstance();
         final String token2 = prefs2.getString('user_token') ?? '';
         final response = await http.get(

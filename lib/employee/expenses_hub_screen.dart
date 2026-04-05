@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'facility_type_screen.dart';
 import 'expenses_screen.dart';
 import 'student_payment_screen.dart';
+import 'employee_rating_screen.dart'; // ✅ شاشة تقييم الموظفين
 
 const Color _kOrange      = Color(0xFFC66422);
 const Color _kDarkBlue    = Color(0xFF2E3542);
@@ -16,7 +17,7 @@ class ExpensesHubScreen extends StatefulWidget {
 }
 
 class _ExpensesHubScreenState extends State<ExpensesHubScreen> {
-  // -1 = شاشة الكاردات   |   0,1,2 = الشاشات الفرعية
+  // -1 = شاشة الكاردات   |   0,1,2,3 = الشاشات الفرعية
   int _activeSection = -1;
 
   final List<_SectionMeta> _sections = const [
@@ -40,6 +41,13 @@ class _ExpensesHubScreenState extends State<ExpensesHubScreen> {
       color   : Color(0xFF2E7D32),
       bgColor : Color(0xFFE8F5E9),
       title   : 'مدفوعات الطالب',
+    ),
+    _SectionMeta(
+      icon    : Icons.star_rate_outlined,
+      label   : 'تقييم\nالموظفين',
+      color   : Color(0xFF7B1FA2),
+      bgColor : Color(0xFFF3E5F5),
+      title   : 'تقييم الموظفين',
     ),
   ];
 
@@ -149,6 +157,7 @@ class _ExpensesHubScreenState extends State<ExpensesHubScreen> {
       case 0: return const FacilityTypeScreen();
       case 1: return const ExpensesScreen();
       case 2: return const StudentPaymentScreen();
+      case 3: return const EmployeeRatingScreen(); // ✅ تقييم الموظفين
       default: return const SizedBox.shrink();
     }
   }

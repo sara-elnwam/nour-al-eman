@@ -28,7 +28,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
 
   // 1. Endpoint: GetAll (جلب البيانات)
   Future<void> fetchStaffRoles() async {
-    final url = Uri.parse('https://nourelman.runasp.net/api/EmployeeType/GetAll');
+    final url = Uri.parse('https://nour-al-eman.runasp.net/api/EmployeeType/GetAll');
     try {
       debugPrint("🚀 محاولة جلب البيانات من: $url");
       final response = await http.get(url).timeout(const Duration(seconds: 20));
@@ -53,7 +53,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     }
   }
   Future<void> deleteRole(int id) async {
-    final url = Uri.parse('https://nourelman.runasp.net/api/EmployeeType/Delete');
+    final url = Uri.parse('https://nour-al-eman.runasp.net/api/EmployeeType/Delete');
     try {
       debugPrint("🗑️ محاولة حذف ID: $id عبر Body JSON");
       final response = await http.delete(
@@ -92,7 +92,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
   }
   // 2. Endpoint: Add (إضافة وظيفة جديدة)
   Future<void> addRole(String name) async {
-    final url =Uri.parse('https://nourelman.runasp.net/api/EmployeeType/Add');
+    final url =Uri.parse('https://nour-al-eman.runasp.net/api/EmployeeType/Add');
     try {
       debugPrint("📤 جاري إضافة وظيفة جديدة: $name");
       final response = await http.post(
@@ -113,7 +113,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
 
   // 3. Endpoint: Update (تعديل وظيفة موجودة)
   Future<void> updateRole(int id, String newName) async {
-    final url = Uri.parse('https://nourelman.runasp.net/api/EmployeeType/Update');
+    final url = Uri.parse('https://nour-al-eman.runasp.net/api/EmployeeType/Update');
     try {
       debugPrint("🔄 جاري تحديث الوظيفة ID: $id إلى: $newName");
       final response = await http.put(

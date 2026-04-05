@@ -58,7 +58,7 @@ class _EditTeacherScreenState extends State<EditTeacherScreen> {
 
   Future<void> _fetchLocations() async {
     try {
-      final response = await http.get(Uri.parse('https://nourelman.runasp.net/api/Locations/GetAll'));
+      final response = await http.get(Uri.parse('https://nour-al-eman.runasp.net/api/Locations/GetAll'));
       if (response.statusCode == 200) {
         final decodedData = json.decode(response.body);
         setState(() {
@@ -105,7 +105,7 @@ class _EditTeacherScreenState extends State<EditTeacherScreen> {
       print("Sending Payload to Server: ${json.encode(updateData)}");
 
       final response = await http.put(
-        Uri.parse('https://nourelman.runasp.net/api/Employee/Update'),
+        Uri.parse('https://nour-al-eman.runasp.net/api/Employee/Update'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': '*/*',

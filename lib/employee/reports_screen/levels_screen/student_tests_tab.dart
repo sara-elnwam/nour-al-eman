@@ -28,7 +28,7 @@ class _StudentTestsTabState extends State<StudentTestsTab> {
       String? token = prefs.getString('token');
 
       final response = await http.get(
-        Uri.parse('https://nourelman.runasp.net/api/Student/GetAllExamBsedOnStId?StId=${widget.studentId}'),
+        Uri.parse('https://nour-al-eman.runasp.net/api/Student/GetAllExamBsedOnStId?StId=${widget.studentId}'),
         headers: {'Authorization': 'Bearer $token'},
       );
 

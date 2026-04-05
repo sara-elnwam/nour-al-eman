@@ -50,7 +50,7 @@ class _StaffDetailsScreenState extends State<StaffDetailsScreen> with SingleTick
       String? token = prefs.getString('token');
 
       // تأكدي من إضافة ${widget.staffId} في نهاية الرابط هنا:
-      final String url = 'https://nourelman.runasp.net/api/Employee/GetById?id=${widget.staffId}';
+      final String url = 'https://nour-al-eman.runasp.net/api/Employee/GetById?id=${widget.staffId}';
       print("Requesting URL: $url");
 
       final response = await http.get(

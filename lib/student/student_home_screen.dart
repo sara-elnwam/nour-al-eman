@@ -20,7 +20,7 @@ const Color kHeaderBg = Color(0xFFF8FAFC);
 const Color kAccentOrange = Color(0xFFF59E0B);
 
 
-const String baseUrl = 'https://nourelman.runasp.net/api';
+const String baseUrl = 'https://nour-al-eman.runasp.net/api';
 
 class StudentHomeScreen extends StatefulWidget {
   final Map<String, dynamic>? loginData;
@@ -518,7 +518,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
       };
 
       // 3. بناء الرابط النهائي كما في الـ Swagger
-      final uri = Uri.parse('https://nourelman.runasp.net/api/StudentCources/UploadStudentExamWithNoFile')
+      final uri = Uri.parse('https://nour-al-eman.runasp.net/api/StudentCources/UploadStudentExamWithNoFile')
           .replace(queryParameters: queryParams);
 
       debugPrint("📡 Submitting to: $uri");
@@ -734,7 +734,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
       // نرفع ملف واحد بس (أول ملف) — السيرفر بيرفض التكرار
       final examId = taskSnapshot?['id']?.toString() ?? '';
       final file = filesToUpload.first;
-      final uri = Uri.parse('https://nourelman.runasp.net/api/StudentCources/UploadStudentExam')
+      final uri = Uri.parse('https://nour-al-eman.runasp.net/api/StudentCources/UploadStudentExam')
           .replace(queryParameters: {
         'levelId': levelId,
         'typeId': typeId,

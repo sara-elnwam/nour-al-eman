@@ -68,13 +68,13 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
 
       // ✅ Call 1: جلب طلاب المجموعة
       final studentsUrl = Uri.parse(
-          'https://nourelman.runasp.net/api/Group/GetGroupDetails?GroupId=${widget.groupId}&LevelId=${widget.levelId}');
+          'https://nour-al-eman.runasp.net/api/Group/GetGroupDetails?GroupId=${widget.groupId}&LevelId=${widget.levelId}');
       final studentsResponse = await http.get(studentsUrl, headers: {'Authorization': 'Bearer $token'});
       debugPrint("Group Students Response: ${studentsResponse.body}");
 
       // ✅ Call 2: جلب بيانات المجموعة الكاملة (empId, locId, sessions) من Getall
       final groupUrl = Uri.parse(
-          'https://nourelman.runasp.net/api/Group/Getall?levelid=${widget.levelId}');
+          'https://nour-al-eman.runasp.net/api/Group/Getall?levelid=${widget.levelId}');
       final groupResponse = await http.get(groupUrl);
       debugPrint("Groups List Response: ${groupResponse.body}");
 
@@ -128,8 +128,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
 
   Future<void> _loadInitialDataForEdit() async {
     try {
-      final locRes = await http.get(Uri.parse('https://nourelman.runasp.net/api/Locations/Getall'));
-      final techRes = await http.get(Uri.parse('https://nourelman.runasp.net/api/Employee/GetWithType?type=1'));
+      final locRes = await http.get(Uri.parse('https://nour-al-eman.runasp.net/api/Locations/Getall'));
+      final techRes = await http.get(Uri.parse('https://nour-al-eman.runasp.net/api/Employee/GetWithType?type=1'));
       if (mounted) {
         final techBody2 = jsonDecode(techRes.body);
         final teachers = techBody2 is List ? techBody2 : (techBody2['data'] ?? []);
@@ -224,7 +224,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
       debugPrint("Update Group Payload: ${jsonEncode(requestBody)}");
 
       final response = await http.put(
-        Uri.parse('https://nourelman.runasp.net/api/Group/Update'),
+        Uri.parse('https://nour-al-eman.runasp.net/api/Group/Update'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -418,7 +418,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
-      final url = Uri.parse('https://nourelman.runasp.net/api/Student/GetByStatus?status=true');
+      final url = Uri.parse('https://nour-al-eman.runasp.net/api/Student/GetByStatus?status=true');
       final response = await http.get(url, headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -438,7 +438,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
-      final url = Uri.parse('https://nourelman.runasp.net/api/Student/Update');
+      final url = Uri.parse('https://nour-al-eman.runasp.net/api/Student/Update');
 
       Map<String, dynamic> updatedPayload = Map<String, dynamic>.from(studentData);
       updatedPayload['groupId'] = widget.groupId;
@@ -546,7 +546,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
   Future<void> _updatePassword(int studentId, String newPassword) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final url = Uri.parse('https://nourelman.runasp.net/api/Student/Update');
+      final url = Uri.parse('https://nour-al-eman.runasp.net/api/Student/Update');
       final response = await http.put(
         url,
         headers: {
@@ -570,7 +570,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
 
       // أولاً: جلب بيانات الطالب الكاملة
       final getResponse = await http.get(
-        Uri.parse('https://nourelman.runasp.net/api/Student/GetById?id=$studentId'),
+        Uri.parse('https://nour-al-eman.runasp.net/api/Student/GetById?id=$studentId'),
         headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
       );
 
@@ -614,7 +614,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
       debugPrint("Clean remove student payload: ${jsonEncode(cleanPayload)}");
 
       final updateResponse = await http.put(
-        Uri.parse('https://nourelman.runasp.net/api/Student/Update'),
+        Uri.parse('https://nour-al-eman.runasp.net/api/Student/Update'),
         headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
         body: jsonEncode(cleanPayload),
       );
