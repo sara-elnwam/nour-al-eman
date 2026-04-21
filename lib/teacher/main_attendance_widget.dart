@@ -20,17 +20,11 @@ class MainAttendanceScreen extends StatefulWidget {
 
 class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
   final LocalAuthentication auth = LocalAuthentication();
-
   String _currentLocationText = "جاري تحديد موقعك...";
   String _currentTime = "";
-
-  // ✅ FIX: القيم الصح اللي بيفهمها السيرفر
   String _checkType = "check-in";
-
   late Timer _timer;
-
   Position? _myPosition;
-
   Map<String, dynamic>? _selectedOffice;
   String? _selectedLocationName;
   bool _isInRange = false;
@@ -76,7 +70,6 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
       _showSnackBar("تعذر الاتصال بالسيرفر", Colors.red);
     }
   }
-
   String? _normalizeDate(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) return null;
     try {
@@ -102,7 +95,6 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
       intl.DateFormat('yyyy-MM-dd').format(DateTime.now());
       bool foundTodayLocally = false;
 
-      // ── 1. جيب من السجل المحلي أولاً ──
       final localKey = 'local_attendance_$empId';
       final localJson = prefs.getString(localKey);
       if (localJson != null) {
@@ -110,7 +102,6 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
         for (var rec in localRecords) {
           final normalized = _normalizeDate(rec['date']?.toString());
           if (normalized == todayDate) {
-            // ✅ FIX: تحقق من check-out (مش "Out")
             final bool hasCheckOut = (rec['checkOutTime'] != null &&
                 rec['checkOutTime'].toString().isNotEmpty) ||
                 rec['checkType'] == 'check-out';
@@ -230,13 +221,6 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
           centerLng);
       result = distToCenter <= allowedRadius;
 
-      debugPrint("🔍 ========== DEBUG: _checkDistance ==========");
-      debugPrint("📍 موقع المستخدم: lat=${_myPosition!.latitude}, lng=${_myPosition!.longitude}");
-      debugPrint("🏢 الفرع المختار: ${office['name']} (id=${office['id']})");
-      debugPrint("📏 مسافة المستخدم من المركز: ${distToCenter.toStringAsFixed(1)} متر");
-      debugPrint("📏 الحد المسموح (+150م): ${allowedRadius.toStringAsFixed(1)} متر");
-      debugPrint("🧮 النتيجة: $result");
-      debugPrint("🔍 =============================================");
     }
 
     setState(() {
@@ -297,7 +281,6 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
         return;
       }
 
-      // ✅ FIX: استخدم locId من الـ dropdown المختار مش من prefs
       final int? selectedLocId = _selectedOffice != null
           ? int.tryParse(_selectedOffice!['id'].toString())
           : null;
@@ -310,7 +293,6 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
       final Map<String, dynamic> attendanceData = {
         "id": 0,
         "userId": userGuid,
-        // ✅ FIX: "check-in" / "check-out" زي الويب بالظبط
         "checkType": _checkType,
         "locId": selectedLocId,
         "hisCoordinate": {
@@ -322,9 +304,8 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
       debugPrint("ATTENDANCE REQUEST: ${json.encode(attendanceData)}");
 
       final String token = prefs.getString('user_token') ?? '';
-      // ✅ FIX: لو الـ token فاضي أو no_token → مش ترسله خالص
       final bool hasToken = token.isNotEmpty && token != 'no_token';
-      debugPrint('🔑 Token exists: \$hasToken');
+      debugPrint(' Token exists: \$hasToken');
 
       final response = await http.post(
         Uri.parse(
@@ -343,8 +324,6 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
         final responseData = json.decode(response.body);
         final dynamic error = responseData['error'];
         final dynamic dataVal = responseData['data'];
-
-        // ✅ FIX: لو فيه error حقيقي من السيرفر → احفظ محلي بس ومتقلبش الـ state
         final bool hasServerError = (error != null &&
             error.toString().isNotEmpty &&
             error.toString() != "null") ||
@@ -359,8 +338,6 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
           _showSnackBar("⚠️ تم الحفظ محلياً - خطأ في السيرفر", Colors.orange);
           return;
         }
-
-        // ✅ نجاح حقيقي
         await _saveLocally(prefs, rawId);
         _showSnackBar(
           _checkType == "check-in"
@@ -383,7 +360,6 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
   void _flipCheckType() {
     if (mounted) {
       setState(() {
-        // ✅ FIX: toggle بين check-in و check-out
         _checkType = _checkType == "check-in" ? "check-out" : "check-in";
       });
     }
@@ -422,8 +398,6 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
       final timeStr =
           '${now.hour > 12 ? now.hour - 12 : now.hour == 0 ? 12 : now.hour}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')} ${now.hour >= 12 ? 'PM' : 'AM'}';
       final todayNormalized = intl.DateFormat('yyyy-MM-dd').format(now);
-
-      // ✅ FIX: مقارنة بـ "check-in" مش "In"
       if (_checkType == 'check-in') {
         records.insert(0, {
           'userName': userName,
@@ -458,14 +432,12 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
           });
         }
       }
-
       if (records.length > 200) records = records.sublist(0, 200);
       await prefs.setString(localKey, jsonEncode(records));
     } catch (e) {
       debugPrint('Local save error: $e');
     }
   }
-
   String? _calcWorkingHours(String? inTimeStr, String outTimeStr) {
     try {
       if (inTimeStr == null) return null;
@@ -493,7 +465,6 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
       return null;
     }
   }
-
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message,
@@ -644,7 +615,6 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
 
   Widget _buildFingerprintButton() {
     bool canPress = _selectedOffice != null && _isInRange;
-    // ✅ FIX: مقارنة بـ "check-in" مش "In"
     String statusText = _checkType == "check-in"
         ? "اضغط لتسجيل الحضور"
         : "اضغط لتسجيل الانصراف";
@@ -680,7 +650,6 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
               ],
             ),
             child: Icon(
-              // ✅ FIX: مقارنة بـ "check-in" مش "In"
               _checkType == "check-in" ? Icons.fingerprint : Icons.exit_to_app,
               size: 80,
               color: canPress ? activeColor : Colors.grey.shade300,

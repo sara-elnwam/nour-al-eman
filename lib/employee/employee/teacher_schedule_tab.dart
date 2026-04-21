@@ -23,7 +23,6 @@ class _TeacherScheduleTabState extends State<TeacherScheduleTab> {
 
   Future<void> _fetchSchedule() async {
     try {
-      // الرابط بناءً على الصور المرفقة
       final url = 'https://nour-al-eman.runasp.net/api/Employee/GetSessionRecord?emp_id=${widget.empId}';
       final response = await http.get(Uri.parse(url));
 

@@ -40,7 +40,7 @@ class AttendanceData {
 }
 
 class AttendanceLogsTab extends StatefulWidget {
-  final int empId; // تم تغيير النوع هنا من String إلى int ليتوافق مع شاشة التفاصيل
+  final int empId;
 
   const AttendanceLogsTab({super.key, required this.empId});
 
@@ -77,7 +77,6 @@ class _AttendanceLogsTabState extends State<AttendanceLogsTab> {
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      // تم تعديل الرابط ليتعامل مع int بشكل سليم
       final url = 'https://nour-al-eman.runasp.net/api/Locations/GetAll-employee-attendance-ByEmpId?EmpId=${widget.empId}';
       final response = await http.get(Uri.parse(url));
 
@@ -107,7 +106,7 @@ class _AttendanceLogsTabState extends State<AttendanceLogsTab> {
 
     setState(() {
       _groupedAttendance = groups;
-      _availableMonths = groups.keys.toList(); // فلترة الشهور التي تحتوي على بيانات فقط
+      _availableMonths = groups.keys.toList();
       _currentMonthIndex = 0;
     });
   }

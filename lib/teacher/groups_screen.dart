@@ -21,32 +21,22 @@ class _GroupsScreenState extends State<GroupsScreen> {
     super.initState();
     _fetchGroups();
   }
-
-// 2. تعديل دالة _fetchGroups لتصبح هكذا:
   Future<void> _fetchGroups() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-
-      // 1. هنجيب الـ ID اللي اتخزن فعلياً في الـ Login
       String empId = prefs.getString('user_id') ?? "";
 
       print("DEBUG: Current Employee ID fetching groups is: $empId");
-
-      // 2. فحص بسيط للتأكد من وجود ID
       if (empId.isEmpty) {
         print("خطأ: لم يتم العثور على ID للمعلم في الـ SharedPreferences");
         if (mounted) setState(() => _isLoading = false);
         return;
       }
-
-      // 3. الطلب من السيرفر باستخدام الـ ID الديناميكي
       final response = await http.get(
-          Uri.parse('https://nourelman.runasp.net/api/Group/GetAllEmployeeGroups?EmpId=$empId')      );
+          Uri.parse('https://nour-al-eman.runasp.net/api/Group/GetAllEmployeeGroups?EmpId=$empId')      );
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonData = json.decode(response.body);
-
-        // تأكدي أن السيرفر يرجع قائمة في "data"
         if (jsonData["data"] != null) {
           if (mounted) {
             setState(() {

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-
-// الألوان المستخدمة لتوحيد التصميم
 const Color kPrimaryBlue = Color(0xFF07427C);
 const Color kTextDark = Color(0xFF2E3542);
 const Color kLabelGrey = Color(0xFF718096);
@@ -31,15 +29,12 @@ class StudentExamsWidget extends StatelessWidget {
 
         return Column(
           children: [
-            // 1. كارت العنوان (اختبارات المستوى)
             _buildCustomCard(
               child: Text(
                 "اختبارات المستوى ${examInfo['levelId'] ?? 'الأول'}",
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: kTextDark),
               ),
             ),
-
-            // 2. كارت تفاصيل الاختبار (الاسم والدرجة)
             _buildCustomCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -50,8 +45,6 @@ class StudentExamsWidget extends StatelessWidget {
                 ],
               ),
             ),
-
-            // 3. كارت ملاحظات المعلم
             _buildCustomCard(
               child: _rowItem("ملاحظات المعلم:", data['note'] ?? "لا يوجد", isBlue: true),
             ),
@@ -61,7 +54,6 @@ class StudentExamsWidget extends StatelessWidget {
     );
   }
 
-  // تصميم الكارت الموحد
   Widget _buildCustomCard({required Widget child}) {
     return Container(
       width: double.infinity,
@@ -83,7 +75,7 @@ class StudentExamsWidget extends StatelessWidget {
     );
   }
 
-  // تنسيق السطر الواحد (التسمية والقيمة) بدون أسهم
+
   Widget _rowItem(String label, String value, {bool isBlue = false}) {
     return Wrap(
       spacing: 8,

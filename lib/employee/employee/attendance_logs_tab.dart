@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import 'dart:ui' as ui;
 import 'package:shared_preferences/shared_preferences.dart';
 
-// ───────── Models ─────────
 class AttendanceData {
   String? date;
   String? checkInTime;
@@ -36,7 +35,6 @@ class AttendanceData {
   );
 }
 
-// ───────── Tab Widget ─────────
 class AttendanceLogsTab extends StatefulWidget {
   final int empId;
 
@@ -81,9 +79,6 @@ class _AttendanceLogsTabState extends State<AttendanceLogsTab> {
 
     try {
       List<AttendanceData> allRecords = [];
-
-      // ── 1. جيب السجلات المحلية أولاً (هي الأدق والأحدث) ──
-      // ✅ هذا هو المفتاح الصح - نفس المفتاح اللي بتحفظه شاشة البصمة
       try {
         final prefs = await SharedPreferences.getInstance();
         final localKey = 'local_attendance_${widget.empId}';
@@ -105,9 +100,6 @@ class _AttendanceLogsTabState extends State<AttendanceLogsTab> {
       } catch (e) {
         debugPrint("Local fetch error: $e");
       }
-
-      // ── 2. جيب من السيرفر وأضف اللي مش موجود محلياً ──
-      // ✅ endpoint الصح للـ check-in/check-out
       try {
         final prefs2 = await SharedPreferences.getInstance();
         final String token2 = prefs2.getString('user_token') ?? '';
@@ -125,9 +117,6 @@ class _AttendanceLogsTabState extends State<AttendanceLogsTab> {
         if (response.statusCode == 200) {
           final decoded = json.decode(response.body);
           final List<dynamic> data = decoded['data'] ?? [];
-
-          // عمل set من التواريخ الموجودة محلياً عشان منضفش تكرار
-          // ✅ dedup بـ date+checkInTime عشان منحذفش بصمات مختلفة في نفس اليوم
           final Set<String> localKeys = {};
           for (var r in allRecords) {
             if (r.date != null) localKeys.add('${r.date}|${r.checkInTime ?? ""}');
@@ -154,12 +143,8 @@ class _AttendanceLogsTabState extends State<AttendanceLogsTab> {
   }
 
   void _processData(List<AttendanceData> rawData) {
-    // رتب من الأحدث للأقدم
     final validData = rawData.where((r) => _parseDate(r.date) != null).toList();
     validData.sort((a, b) => _parseDate(b.date)!.compareTo(_parseDate(a.date)!));
-
-    // ✅ كل record يظهر على حدة - مش بنحذف التكرار
-    // عشان كل بصمة حضور أو انصراف تظهر في سطر لوحده
     Map<String, List<AttendanceData>> groups = {};
     for (var entry in validData) {
       final date = _parseDate(entry.date)!;

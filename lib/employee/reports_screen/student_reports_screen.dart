@@ -7,7 +7,6 @@ import 'package:http/http.dart' as http;
 import 'student_tasks_absence_screen.dart';
 import 'levels_report_screen.dart';
 
-// --- Models ---
 class LevelModel {
   final int id;
   final String name;
@@ -58,7 +57,6 @@ class _StudentReportsScreenState extends State<StudentReportsScreen> with Single
   @override
   void initState() {
     super.initState();
-    // طول الـ TabController هو 4 ليناسب عدد التبويبات
     _tabController = TabController(length: 4, vsync: this);
     _loadAllData();
   }

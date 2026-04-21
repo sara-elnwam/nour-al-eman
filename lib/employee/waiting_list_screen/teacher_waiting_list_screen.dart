@@ -61,7 +61,6 @@ class _TeacherWaitingListScreenState extends State<TeacherWaitingListScreen> {
       } else { setState(() => isLoading = false); }
     } catch (e) { setState(() => isLoading = false); }
   }
-
   void _showConfirmDialog(int id, bool isAccept) => _showWaitingDialog(context, id, isAccept, _handleAction);
 
   @override

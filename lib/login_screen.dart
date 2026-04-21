@@ -14,7 +14,7 @@ final Color darkBlue = Color(0xFF2E3542);
 final Color greyText = Color(0xFF707070);
 final Color successGreen = Color(0xFF2D8A63);
 
-const String baseUrl = 'https://nour-al-eman.runasp.net/api';
+const String baseUrl = 'https://nour-al-elman.runasp.net/api';
 
 var logger = Logger();
 
@@ -289,7 +289,7 @@ class _LoginScreenState extends State<LoginScreen> {
           }),
         );
 
-        debugPrint("🔐 VALIDATE_LOGIN: status=${response.statusCode} | body=${response.body}");
+        debugPrint(" VALIDATE_LOGIN: status=${response.statusCode} | body=${response.body}");
 
         if (response.statusCode == 200) {
           final dynamic decodedBody = jsonDecode(response.body);
@@ -304,7 +304,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Future<void> handleSelectedAccount(Map<String, dynamic> selected) async {
               final int selUserType = int.tryParse(selected['userType']?.toString() ?? "0") ?? 0;
               final String selUserId = selected['id']?.toString() ?? "";
-              debugPrint("🎯 handleSelectedAccount: userType=$selUserType, userId=$selUserId");
+              debugPrint(" handleSelectedAccount: userType=$selUserType, userId=$selUserId");
 
               try {
                 final userLoginResponse = await http.post(
@@ -390,19 +390,17 @@ class _LoginScreenState extends State<LoginScreen> {
               );
             }
           } else {
-            // رسبونس object مباشر (فيه token و userId) → دخول مباشر
             await _loginWithAccount(Map<String, dynamic>.from(decodedBody));
           }
         } else {
           // ValidateUserLogin رجع error
-          debugPrint("🔴 VALIDATE_LOGIN FAILED: status=${response.statusCode} | body=${response.body}");
+          debugPrint(" VALIDATE_LOGIN FAILED: status=${response.statusCode} | body=${response.body}");
           if (response.statusCode == 401) {
             try {
               final body = jsonDecode(response.body);
               final msg = body['message']?.toString().trim() ?? "";
-              debugPrint("🔴 401 msg: $msg");
+              debugPrint(" 401 msg: $msg");
               if (msg == 'Waiting for Approve') {
-                // أكونت واحد pending → روح شاشة الانتظار
                 setState(() => _isLoading = false);
                 if (mounted) {
                   Navigator.of(context).push(
@@ -416,7 +414,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 return;
               }
             } catch (e) {
-              debugPrint("❌ parse error: $e");
+              debugPrint(" parse error: $e");
             }
           }
           _showErrorSnackBar("رقم الهاتف أو كلمة المرور غير صحيحة");
@@ -430,23 +428,21 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // بتجيب الـ numeric ID من GetAll عن طريق مطابقة الـ phone + userType
   Future<void> _loginWithSelectedAccount({
     required String phone,
     required String password,
-    required String userId,   // GUID من الـ list
-    required int userType,    // userType من الـ list
+    required String userId,
+    required int userType,
   }) async {
     try {
-      // لو طالب (userType=0) مش محتاجين GetAll - بندخل مباشرة
       if (userType == 0) {
         debugPrint("👨‍🎓 طالب - دخول مباشر بدون GetAll");
         final prefs = await SharedPreferences.getInstance();
         final loginDataToSave = <String, dynamic>{
           'userId': "",
-          'id': userId,       // ← الـ GUID محفوظ في 'id' عشان _loadInitialData يلاقيه
+          'id': userId,
           'user_Id': userId,
-          'phoneNumber': phone, // ← التليفون صح
+          'phoneNumber': phone,
           'userType': userType,
         };
         await prefs.setString('user_id', "");
@@ -472,7 +468,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
       debugPrint("🔍 جاري البحث عن numeric ID من Employee/Getall...");
 
-      // userType=2 أو 3 → type=2, userType=1 أو 4 → type=1
       final empType = (userType == 1 || userType == 4) ? 1 : 2;
       final allResponse = await http.get(
         Uri.parse('$baseUrl/Employee/GetWithType?type=$empType'),
@@ -486,7 +481,6 @@ class _LoginScreenState extends State<LoginScreen> {
       final allData = jsonDecode(allResponse.body);
       final List employees = allData is List ? allData : (allData['data'] ?? []);
 
-      // الخطوة 2: لاقي الموظف اللي phone وemployeeTypeId بتاعه مطابقين
       Map<String, dynamic>? matched;
       try {
         matched = Map<String, dynamic>.from(employees.firstWhere(
@@ -504,15 +498,14 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       if (matched == null) {
-        debugPrint("❌ مش لاقي الموظف في GetAll");
+        debugPrint(" GetAll");
         _showErrorSnackBar("حدث خطأ في تسجيل الدخول");
         return;
       }
 
       final numericId = matched['id']?.toString() ?? "";
-      debugPrint("✅ لقيت numeric ID: $numericId");
+      debugPrint("  numeric ID: $numericId");
 
-      // الخطوة 3: احفظ البيانات
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('user_id', numericId);
       await prefs.setString('user_guid', userId);
@@ -531,7 +524,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
       debugPrint("✅ Saved user_id: $numericId | guid: $userId");
 
-      // الخطوة 4: انتقل للشاشة المناسبة
       Widget nextScreen;
       if (userType == 1 || userType == 4) {
         nextScreen = TeacherHomeScreen();
@@ -558,7 +550,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // دالة الحفظ والانتقال - بتشتغل بس لما الداتا فيها token و userId صح
   Future<void> _loginWithAccount(Map<String, dynamic> userData) async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -574,7 +565,7 @@ class _LoginScreenState extends State<LoginScreen> {
     await prefs.setString('loginData', jsonEncode(userData));
     await prefs.setBool('is_logged_in', true);
 
-    debugPrint("✅ Saved user_id: $numericId | guid: $guid");
+    debugPrint(" Saved user_id: $numericId | guid: $guid");
 
     int userType = int.tryParse(userData['userType']?.toString() ?? "0") ?? 0;
 
@@ -640,7 +631,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _phoneController,
                     decoration: _buildInputDecoration("أدخل رقم الهاتف"),
                     keyboardType: TextInputType.phone,
-                    textInputAction: TextInputAction.next, // بيخلي زرار الكيبورد يظهر "التالي"
+                    textInputAction: TextInputAction.next,
                     validator: (value) => (value == null || value.isEmpty) ? "مطلوب" : null,
                   ),
                   SizedBox(height: 20),
@@ -648,7 +639,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _isObscured,
-                    textInputAction: TextInputAction.done, // بيخلي زرار الكيبورد يظهر "تم"
+                    textInputAction: TextInputAction.done,
                     onFieldSubmitted: (_) => _handleLogin(),
                     decoration: _buildInputDecoration("أدخل كلمة السر").copyWith(
                       suffixIcon: IconButton(
@@ -701,11 +692,9 @@ class UserTypeScreen extends StatefulWidget {
 class _UserTypeScreenState extends State<UserTypeScreen> {
   String? selectedType;
 
-  // هذه هي الدالة المسؤولة عن الانتقال الفوري
   void _handleTypeSelection(String type) async {
     setState(() => selectedType = type);
 
-    // تأخير بسيط (250 مللي ثانية) للسماح للمستخدم برؤية تأثير الاختيار
     await Future.delayed(Duration(milliseconds: 50));
 
     if (mounted) {
@@ -749,7 +738,7 @@ class _UserTypeScreenState extends State<UserTypeScreen> {
   Widget _buildTypeCard(String title, String desc, IconData icon, String type) {
     bool isSelected = selectedType == type;
     return GestureDetector(
-      onTap: () => _handleTypeSelection(type), // الانتقال الفوري
+      onTap: () => _handleTypeSelection(type),
       child: Container(
         padding: EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -852,7 +841,6 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
   List<dynamic> _locations = [];
   bool _isLoadingLocations = true;
   int? _selectedLocId;
-// متغيرات المكاتب الجديدة
   List<dynamic> _offices = [];
   bool _isLoadingOffices = true;
   @override
@@ -864,7 +852,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
   Future<void> _fetchOffices() async {
     try {
       final response = await http.get(
-        Uri.parse('https://nour-al-eman.runasp.net/api/Location/GetAll'),
+        Uri.parse('https://nour-al-elman.runasp.net/api/Location/GetAll'),
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -880,7 +868,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
   }
   Future<void> _fetchLocations() async {
     try {
-      final response = await http.get(Uri.parse('https://nour-al-eman.runasp.net/api/Locations/GetAll'));
+      final response = await http.get(Uri.parse('https://nour-al-elman.runasp.net/api/Locations/GetAll'));
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
         setState(() {
@@ -909,18 +897,17 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
 
       Map<String, dynamic> studentData = {
         "name": _nameController.text.trim(),
-        "Phone": _parentPhoneController.text.trim(), // ✅ رقم ولي الأمر (الأساسي)
-        "phone2": _phoneController.text.trim(),     // ✅ رقم الطالب (اختياري)
+        "Phone": _parentPhoneController.text.trim(),
+        "phone2": _phoneController.text.trim(),
         "address": _addressController.text.trim(),
         "ParentJob": _parentJobController.text.trim(),
-// تغيير null إلى ""
         "email": _emailController.text.trim().isEmpty ? "" : _emailController.text.trim(),
         "governmentSchool": _schoolController.text.trim(),
         "attendanceType": _selectedAttendance ?? "أوفلاين",
         "birthDate": birthDate,
         "locId": _selectedLocId ?? 1,
         "ssn": "",
-        "employeeTypeId": 0,  // 0 للطالب (ليس null، ليتم تصنيفه صحيحًا)
+        "employeeTypeId": 0,
         "educationDegree": "",
         "Password": _passwordController.text,
       };
@@ -970,8 +957,8 @@ class _EmployeeRegistrationScreenState extends State<EmployeeRegistrationScreen>
   List<dynamic> _offices = [];
   bool _isLoadingOffices = true;
   String? _selectedOffice;
-  List<PlatformFile>? _selectedFiles; // لتخزين الملفات المختارة
-  String _fileNames = "لم يتم اختيار ملفات"; // نص يعرض أسماء الملفات
+  List<PlatformFile>? _selectedFiles;
+  String _fileNames = "لم يتم اختيار ملفات";
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _ssnController = TextEditingController();
@@ -986,7 +973,6 @@ class _EmployeeRegistrationScreenState extends State<EmployeeRegistrationScreen>
   bool _isLoadingLocations = true;
   int? _selectedLocId;
 
-  // متغيرات المسميات الوظيفية الديناميكية
   List<dynamic> _jobTypes = [];
   bool _isLoadingJobTypes = true;
   int? _selectedJobTypeId;
@@ -1015,7 +1001,6 @@ class _EmployeeRegistrationScreenState extends State<EmployeeRegistrationScreen>
     }
   }
 
-  // جلب المسميات الوظيفية ديناميكياً من السيرفر
   Future<void> _fetchJobTypes() async {
     try {
       final response = await http.get(
@@ -1047,26 +1032,24 @@ class _EmployeeRegistrationScreenState extends State<EmployeeRegistrationScreen>
       setState(() => _isLoading = true);
 
       int empTypeId = _selectedJobTypeId ?? 1;
-      // userType: 1 = معلم (employeeTypeId==1)، 2 = باقي الموظفين
       int userType = (empTypeId == 1) ? 1 : 2;
 
       Map<String, dynamic> employeeData = {
         "name": _nameController.text.trim(),
         "phone": _phoneController.text.trim(),
-        "address": "",  // فارغ كما في السيرفر
-        "ParentJob": "",  // فارغ كما في السيرفر
+        "address": "",
+        "ParentJob": "",
         "email": _emailController.text.trim().isEmpty ?  "" : _emailController.text.trim(),
-        "governmentSchool": "",  // فارغ كما في السيرفر
-        "attendanceType": "",  // فارغ كما في السيرفر
-        "birthDate": DateTime.now().toIso8601String(),  // افتراضي كما في السيرفر
+        "governmentSchool": "",
+        "attendanceType": "",
+        "birthDate": DateTime.now().toIso8601String(),
         "locId": _selectedLocId ?? 1,
-        "phone2": "",  // فارغ كما في السيرفر
+        "phone2": "",
         "ssn": _ssnController.text.trim(),
-        "employeeTypeId": empTypeId,  // ID المسمى الوظيفي من السيرفر
+        "employeeTypeId": empTypeId,
         "educationDegree": _eduController.text.trim(),
-        "Password": _passwordController.text,  // Password بحرف كبير
-        "type": userType,  // 1 للمعلمين، 2 للباقي
-        // joinDate: DateTime.now().toIso8601String(),  // أضفه إذا لزم الأمر
+        "Password": _passwordController.text,
+        "type": userType,
       };
 
       logger.i("SENDING EMPLOYEE DATA: ${jsonEncode(employeeData)}");
@@ -1077,7 +1060,7 @@ class _EmployeeRegistrationScreenState extends State<EmployeeRegistrationScreen>
   }
   Future<void> _pickFiles() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
-      allowMultiple: true, // للسماح برفع أكثر من دورة/ملف
+      allowMultiple: true,
       type: FileType.custom,
       allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'png'],
     );
@@ -1316,7 +1299,7 @@ Widget _buildInputField(
         controller: controller,
         obscureText: isPassword ? isObscured : false,
         keyboardType: isPhone ? TextInputType.phone : TextInputType.text,
-        textInputAction: textInputAction ?? TextInputAction.next, // افتراضياً "التالي"
+        textInputAction: textInputAction ?? TextInputAction.next,
         validator: (value) {
           if (isRequired && (value == null || value.trim().isEmpty)) return "مطلوب";
           if (label == "البريد الإلكتروني" && value != null && value.isNotEmpty) {

@@ -15,8 +15,6 @@ class _AllEmployeesScreenState extends State<AllEmployeesScreen> {
   bool _isLoading = true;
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
-
-  // توحيد الألوان مع شاشة المعلمين
   final Color kPrimaryBlue = const Color(0xFF07427C);
   final Color kTextDark = const Color(0xFF2E3542);
 
@@ -25,8 +23,6 @@ class _AllEmployeesScreenState extends State<AllEmployeesScreen> {
     super.initState();
     _fetchAllEmployees();
   }
-
-  // بتتحدث تلقائياً كل ما ترجعي لشاشة الموظفين
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -55,8 +51,6 @@ class _AllEmployeesScreenState extends State<AllEmployeesScreen> {
       setState(() => _isLoading = false);
     }
   }
-
-  // خاصية البحث المضافة
   void _filterSearch(String query) {
     setState(() {
       _filteredEmployees = _allEmployees
@@ -109,13 +103,10 @@ class _AllEmployeesScreenState extends State<AllEmployeesScreen> {
       _showSnackBar("خطأ في الاتصال", Colors.red);
     }
   }
-
-  // --- بوب آب تغيير كلمة المرور (بتصميم موحد) ---
   void _showResetPasswordDialog(int empId, String empName) {
     final TextEditingController _passController = TextEditingController();
     final TextEditingController _confirmPassController = TextEditingController();
     bool _isSubmitting = false;
-
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -175,7 +166,6 @@ class _AllEmployeesScreenState extends State<AllEmployeesScreen> {
     );
   }
 
-  // --- بوب آب الحذف (بتصميم موحد) ---
   void _showDeleteConfirmDialog(int empId) {
     showDialog(
       context: context,
@@ -324,7 +314,6 @@ class _AllEmployeesScreenState extends State<AllEmployeesScreen> {
     );
   }
 
-  // --- Widgets مساعدة موحدة التنسيق ---
   Widget _buildHeaderCell(String text, {TextAlign align = TextAlign.center}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 8),

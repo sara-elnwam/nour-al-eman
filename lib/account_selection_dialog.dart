@@ -304,7 +304,6 @@ class _AccountSelectionDialogState extends State<AccountSelectionDialog>
               ),
               const SizedBox(width: 12),
 
-              // الاسم والنوع
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -340,7 +339,6 @@ class _AccountSelectionDialogState extends State<AccountSelectionDialog>
                 ),
               ),
 
-              // زرار الدخول
               AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
                 width: 38,

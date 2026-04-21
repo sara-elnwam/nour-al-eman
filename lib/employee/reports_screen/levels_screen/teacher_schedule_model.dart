@@ -8,7 +8,7 @@ class TeacherScheduleModel {
   Level? level;
   Loc? loc;
   List<GroupSession>? groupSessions;
-  String? name; // اسم المجموعة
+  String? name;
   int? empId;
 
   TeacherScheduleModel({

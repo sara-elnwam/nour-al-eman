@@ -25,16 +25,10 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
       fetchStaffRoles();
     });
   }
-
-  // 1. Endpoint: GetAll (جلب البيانات)
   Future<void> fetchStaffRoles() async {
     final url = Uri.parse('https://nour-al-eman.runasp.net/api/EmployeeType/GetAll');
     try {
-      debugPrint("🚀 محاولة جلب البيانات من: $url");
       final response = await http.get(url).timeout(const Duration(seconds: 20));
-
-      debugPrint("📥 [GetAll] Response: ${response.body}"); // طباعة الرد
-
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
         if (mounted) {
@@ -48,22 +42,17 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
         throw Exception("فشل الجلب: ${response.statusCode}");
       }
     } catch (error) {
-      debugPrint("❌ خطأ في الجلب: $error");
       if (mounted) setState(() { isLoading = false; isError = true; });
     }
   }
   Future<void> deleteRole(int id) async {
     final url = Uri.parse('https://nour-al-eman.runasp.net/api/EmployeeType/Delete');
     try {
-      debugPrint("🗑️ محاولة حذف ID: $id عبر Body JSON");
       final response = await http.delete(
         url,
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode(id), // نرسل الرقم مباشرة أو كـ {"id": id}
+        body: jsonEncode(id),
       );
-
-      debugPrint("📥 [Delete] Status Code: ${response.statusCode}");
-      debugPrint("📥 [Delete] Response: ${response.body}");
 
       if (response.statusCode == 200 || response.statusCode == 204) {
         fetchStaffRoles();
@@ -72,9 +61,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
             const SnackBar(content: Text("تم الحذف بنجاح"), backgroundColor: Colors.green),
           );
         }
-      } else {
-        // إذا فشل هذا أيضاً، سنحتاج لتجربة إرساله كـ Map
-        final responseRetry = await http.delete(
+      } else {final responseRetry = await http.delete(
           url,
           headers: {"Content-Type": "application/json"},
           body: jsonEncode({"id": id}),
@@ -87,48 +74,35 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
         }
       }
     } catch (e) {
-      debugPrint("⚠️ خطأ نهائي: $e");
     }
   }
-  // 2. Endpoint: Add (إضافة وظيفة جديدة)
   Future<void> addRole(String name) async {
     final url =Uri.parse('https://nour-al-eman.runasp.net/api/EmployeeType/Add');
     try {
-      debugPrint("📤 جاري إضافة وظيفة جديدة: $name");
       final response = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"name": name}),
       );
-
-      debugPrint("📥 [Add] Response: ${response.body}"); // طباعة الرد
-
       if (response.statusCode == 200) {
         fetchStaffRoles(); // تحديث الجدول
       }
     } catch (e) {
-      debugPrint("⚠️ خطأ أثناء الإضافة: $e");
+      debugPrint("️ خطأ أثناء الإضافة: $e");
     }
   }
-
-  // 3. Endpoint: Update (تعديل وظيفة موجودة)
   Future<void> updateRole(int id, String newName) async {
     final url = Uri.parse('https://nour-al-eman.runasp.net/api/EmployeeType/Update');
     try {
-      debugPrint("🔄 جاري تحديث الوظيفة ID: $id إلى: $newName");
       final response = await http.put(
         url,
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"id": id, "name": newName}),
       );
-
-      debugPrint("📥 [Update] Response: ${response.body}"); // طباعة الرد
-
       if (response.statusCode == 200) {
-        fetchStaffRoles(); // تحديث الجدول
+        fetchStaffRoles();
       }
     } catch (e) {
-      debugPrint("⚠️ خطأ أثناء التحديث: $e");
     }
   }
 

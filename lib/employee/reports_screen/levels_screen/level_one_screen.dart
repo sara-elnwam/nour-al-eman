@@ -22,7 +22,6 @@ class _LevelOneScreenState extends State<LevelOneScreen> {
   List<dynamic> teachersList = [];
   List<dynamic> locationsList = [];
 
-  // ✅ قائمة المجموعات كـ state بدل FutureBuilder عشان تتحدث بعد الإضافة
   List<dynamic> groupsList = [];
   bool isLoadingGroups = true;
 
@@ -39,7 +38,6 @@ class _LevelOneScreenState extends State<LevelOneScreen> {
     _fetchGroups();
   }
 
-  // ✅ جلب المجموعات منفصل عشان نقدر نعيد تحميلها في أي وقت
   Future<void> _fetchGroups() async {
     if (mounted) setState(() => isLoadingGroups = true);
     try {
@@ -83,7 +81,6 @@ class _LevelOneScreenState extends State<LevelOneScreen> {
   }
 
   Future<void> _addGroupApi(String name, BuildContext dialogContext) async {
-    // ✅ Validation كامل
     if (name.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("من فضلك أدخل اسم المجموعة"), backgroundColor: Colors.orange),
@@ -113,7 +110,6 @@ class _LevelOneScreenState extends State<LevelOneScreen> {
         ? "${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}"
         : "00:00";
 
-    // ✅ empId و LocId = int وليس String
     final Map<String, dynamic> payload = {
       "name": name.trim(),
       "levelId": widget.levelId,
@@ -153,7 +149,7 @@ class _LevelOneScreenState extends State<LevelOneScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("تم إضافة المجموعة بنجاح ✅"), backgroundColor: Colors.green),
         );
-        _fetchGroups(); // ✅ تحديث القائمة تلقائياً
+        _fetchGroups();
       }
     } else {
       debugPrint("خطأ من السيرفر: ${response.body}");
@@ -178,8 +174,6 @@ class _LevelOneScreenState extends State<LevelOneScreen> {
 
   Future<void> _deleteGroupApi(int id, String name) async {
     try {
-      // السيرفر لا يدعم DELETE ولا POST على هذا الـ endpoint
-      // نستخدم Update مع active: false لتعطيل المجموعة وإخفاؤها
       final response = await http.put(
         Uri.parse('https://nour-al-eman.runasp.net/api/Group/Update'),
         headers: {'Content-Type': 'application/json'},
@@ -222,7 +216,6 @@ class _LevelOneScreenState extends State<LevelOneScreen> {
   }
 
   void _showAddGroupDialog() {
-    // ✅ reset القيم عند كل فتح للديالوج
     selectedTeacherId = null;
     selectedLocationId = null;
     selectedDays = [];

@@ -10,7 +10,6 @@ class RolePermissionsScreen extends StatefulWidget {
 }
 
 class _RolePermissionsScreenState extends State<RolePermissionsScreen> {
-  // 1. بيانات "صلاحيات الوصول للأقسام" مأخوذة من الصور (Screenshot 3922)
   final List<String> sections = [
     "البصمة",
     "الطلاب",
@@ -23,8 +22,6 @@ class _RolePermissionsScreenState extends State<RolePermissionsScreen> {
     "استخراج شهادات تقدير",
     "إدارة الموظفين"
   ];
-
-  // 2. بيانات "صلاحيات الإجراءات" مأخوذة من الصور (Screenshot 3923 & 3924)
   final List<String> actions = [
     "حذف طالب",
     "تعديل طالب",
@@ -45,15 +42,12 @@ class _RolePermissionsScreenState extends State<RolePermissionsScreen> {
     "تعديل صلاحية",
     "إضافة صلاحية"
   ];
-
-  // تخزين القيم المختارة
   Map<String, bool> sectionPermissions = {};
   Map<String, bool> actionPermissions = {};
 
   @override
   void initState() {
     super.initState();
-    // تعبئة البيانات الافتراضية
     for (var sec in sections) {
       sectionPermissions[sec] = false;
     }
@@ -67,7 +61,7 @@ class _RolePermissionsScreenState extends State<RolePermissionsScreen> {
     return DefaultTabController(
       length: 2,
       child: Directionality(
-        textDirection: TextDirection.rtl, // لضمان التنسيق العربي
+        textDirection: TextDirection.rtl,
         child: Scaffold(
           appBar: AppBar(
             title: Text(
@@ -88,8 +82,8 @@ class _RolePermissionsScreenState extends State<RolePermissionsScreen> {
           ),
           body: TabBarView(
             children: [
-              _buildPermissionsList(sectionPermissions), // قائمة الأقسام
-              _buildPermissionsList(actionPermissions),  // قائمة الإجراءات
+              _buildPermissionsList(sectionPermissions),
+              _buildPermissionsList(actionPermissions),
             ],
           ),
         ),
@@ -97,7 +91,6 @@ class _RolePermissionsScreenState extends State<RolePermissionsScreen> {
     );
   }
 
-  // بناء القائمة باستخدام CheckboxListTile بدلاً من Switch
   Widget _buildPermissionsList(Map<String, bool> data) {
     final keys = data.keys.toList();
     return ListView.separated(
@@ -113,14 +106,13 @@ class _RolePermissionsScreenState extends State<RolePermissionsScreen> {
           ),
           value: data[key],
           activeColor: const Color(0xFFC66422),
-          // لتغيير شكل المربع (اختياري حسب إصدار فلاتر)
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
           onChanged: (bool? value) {
             setState(() {
               data[key] = value ?? false;
             });
           },
-          controlAffinity: ListTileControlAffinity.trailing, // المربع يكون على اليسار (في وضع RTL)
+          controlAffinity: ListTileControlAffinity.trailing,
         );
       },
     );

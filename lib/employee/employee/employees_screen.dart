@@ -26,8 +26,6 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     super.initState();
     _fetchTeachersData();
   }
-
-  // بتتحدث تلقائياً كل ما ترجعي لشاشة المعلمين
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -36,8 +34,6 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
       _fetchTeachersData();
     }
   }
-
-  // --- جلب بيانات المعلمين ---
   Future<void> _fetchTeachersData() async {
     setState(() => _isLoading = true);
     try {
@@ -79,26 +75,18 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
       setState(() => _isLoading = false);
     }
   }
-
-  // --- وظيفة الحذف (Deactivate) المحدثة بناءً على الـ API ---
   Future<void> _deleteEmployee(int id) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
-
-      // بناء الرابط مع الـ Query Parameters كما في الصورة (id & type)
-      final url =Uri.parse('https://nour-al-eman.runasp.net/api/Account/DeActivate?id=$id&type=1')
-      ;
-
+      final url =Uri.parse('https://nour-al-eman.runasp.net/api/Account/DeActivate?id=$id&type=1');
       final response = await http.post(
         url,
         headers: {
           'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json', // كما هو ظاهر في Headers الطلب
+          'Content-Type': 'application/json',
         },
       );
-
-      // التأكد من نجاح العملية (Status Code 200) ورسالة Success في الـ Response
       if (response.statusCode == 200) {
         final resBody = jsonDecode(response.body);
         if (resBody['message'] == "Success") {
@@ -114,8 +102,6 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
       _showSnackBar("حدث خطأ غير متوقع", Colors.red);
     }
   }
-
-  // --- وظيفة تحديث كلمة المرور ---
   Future<void> _updatePassword(int empId, String newPassword) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -155,10 +141,10 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent, // هذا السطر يمنع اللون الغريب ويجعلها بيضاء تماماً
+        surfaceTintColor: Colors.transparent,
         elevation: 0.5,
         centerTitle: false,
-        iconTheme: const IconThemeData(color: Color(0xFF2E3542)), // لتوحيد لون الأيقونات مع الطلاب
+        iconTheme: const IconThemeData(color: Color(0xFF2E3542)),
         title: _isSearching
             ? TextField(
           controller: _searchController,
@@ -174,7 +160,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
             style: TextStyle(
                 fontFamily: 'Almarai',
                 fontWeight: FontWeight.bold,
-                color: kTextDark, // تأكدي أن kTextDark هو Color(0xFF2E3542)
+                color: kTextDark,
                 fontSize: 16)),
         actions: [
           IconButton(
@@ -261,9 +247,6 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
       ),
     );
   }
-
-  // --- Widgets مساعدة ---
-
   Widget _buildHeaderCell(String text, {TextAlign align = TextAlign.center}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 8),
@@ -291,7 +274,6 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     return IconButton(icon: Icon(icon, color: color, size: 22), onPressed: onTap);
   }
 
-  // --- بوب آب تغيير كلمة المرور ---
   void _showResetPasswordDialog(int empId, String empName) {
     final TextEditingController _passController = TextEditingController();
     final TextEditingController _confirmPassController = TextEditingController();
@@ -357,7 +339,6 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     );
   }
 
-  // --- بوب آب الحذف ---
   void _showDeleteConfirmDialog(int empId) {
     showDialog(
       context: context,

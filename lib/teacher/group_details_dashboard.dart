@@ -47,7 +47,7 @@ class _GroupDetailsDashboardState extends State<GroupDetailsDashboard>
   }
 
   Future<void> _fetchStudents() async {
-    final String url = 'https://nourelman.runasp.net/api/Group/GetGroupDetails?GroupId=${widget.groupId}&LevelId=${widget.levelId}';
+    final String url = 'https://nour-al-eman.runasp.net/api/Group/GetGroupDetails?GroupId=${widget.groupId}&LevelId=${widget.levelId}';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -110,19 +110,13 @@ class _GroupDetailsDashboardState extends State<GroupDetailsDashboard>
             ? const Center(child: CircularProgressIndicator(color: Color(0xFF07427C)))
             : TabBarView(
           controller: _tabController,
-          // ✅ نمنع السوايب بين التابات عشان متتعارضش مع scroll الجداول
           physics: const NeverScrollableScrollPhysics(),
           children: [
-            // تاب 1: الطلاب
             _buildStudentsTable(),
-
-            // تاب 2: تسجيل الحضور
             attendance.StudentAttendanceScreen(
               groupId: widget.groupId,
               students: _students.map((s) => attendance.Student(id: s.id, name: s.name)).toList(),
             ),
-
-            // تاب 3: تصحيح الاختبارات
             GradingExamsScreen(
               groupId: widget.groupId,
               levelId: widget.levelId,
@@ -136,7 +130,6 @@ class _GroupDetailsDashboardState extends State<GroupDetailsDashboard>
   Widget _buildStudentsTable() {
     return Column(
       children: [
-        // ✅ هيدر بـ flex متطابق مع الصفوف
         Container(
           color: const Color(0xFFF8FAFC),
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
@@ -160,7 +153,6 @@ class _GroupDetailsDashboardState extends State<GroupDetailsDashboard>
                 padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
                 child: Row(
                   children: [
-                    // ✅ اسم الطالب بـ flex أكبر مع overflow
                     Expanded(
                       flex: 5,
                       child: Text(
@@ -271,7 +263,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     }
   }
   Future<void> _fetchDetails() async {
-    final url = "https://nourelman.runasp.net/api/Student/GetById?id=${widget.studentId}";
+    final url = "https://nour-al-eman.runasp.net/api/Student/GetById?id=${widget.studentId}";
     try {
       final res = await http.get(Uri.parse(url));
       if (res.statusCode == 200) {
@@ -411,7 +403,7 @@ class _WeeklyQuestionsScreenState extends State<WeeklyQuestionsScreen> {
   }
 
   Future<void> _fetch() async {
-    final String url = "https://nourelman.runasp.net/api/Student/GetAllExamBsedOnType?StId=${widget.studentId}&TypeId=1";
+    final String url = "https://nour-al-eman.runasp.net/api/Student/GetAllExamBsedOnType?StId=${widget.studentId}&TypeId=1";
     try {
       final res = await http.get(Uri.parse(url));
       if (res.statusCode == 200) {
@@ -426,7 +418,7 @@ class _WeeklyQuestionsScreenState extends State<WeeklyQuestionsScreen> {
   }
 
   Future<void> _submitGrade(int examId, String grade, String note) async {
-    const String postUrl = "https://nourelman.runasp.net/api/StudentCources/AddStudentExamAsync";
+    const String postUrl = "https://nour-al-eman.runasp.net/api/StudentCources/AddStudentExamAsync";
     try {
       final response = await http.post(
         Uri.parse(postUrl),
@@ -631,12 +623,10 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
     _fetch();
   }
 
-  // ✅ FIX: دالة مساعدة لاستخراج القيمة وتنظيفها من null
   String? _cleanValue(dynamic value) {
     if (value == null) return null;
     String str = value.toString().trim();
     if (str.isEmpty || str.toLowerCase() == "null") return null;
-    // FIX: التقييمات القديمة اتحفظت بـ "null, " في الأول بسبب bug قديم - نشيلها
     final lowerStr = str.toLowerCase();
     if (lowerStr.startsWith("null,")) {
       str = str.substring(5).trim();
@@ -650,7 +640,7 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
   Future<void> _fetch() async {
     setState(() => _isLoading = true);
     final String url =
-        "https://nourelman.runasp.net/api/Student/GetAllExamBsedOnType?StId=${widget.studentId}&TypeId=2";
+        "https://nour-al-eman.runasp.net/api/Student/GetAllExamBsedOnType?StId=${widget.studentId}&TypeId=2";
     try {
       final res = await http.get(Uri.parse(url));
       debugPrint("StudentExams API Response: ${res.body.substring(0, res.body.length > 300 ? 300 : res.body.length)}");
@@ -658,27 +648,22 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
         final decoded = json.decode(res.body);
         List<dynamic> rawData = decoded["data"] ?? [];
         final normalized = rawData.map((item) {
-          // 🔍 طباعة الـ item كامل عشان نشوف بالظبط فين الـ note جاي
-          debugPrint("📦 RAW ITEM: ${jsonEncode(item)}");
-
+          debugPrint(" RAW ITEM: ${jsonEncode(item)}");
           final exam = item["exam"] ?? item["ex"] ?? {};
           final studentExams = exam["studentExams"] as List?;
           final firstExam = (studentExams != null && studentExams.isNotEmpty) ? studentExams[0] : null;
-
-          // نجرب كل المسارات الممكنة
           final rawGrade = _cleanValue(item["grade"]) ??
               _cleanValue(item["gr"]) ??
               _cleanValue(firstExam?["grade"]);
-
           final rawNote = _cleanValue(item["note"]) ??
               _cleanValue(item["no"]) ??
               _cleanValue(firstExam?["note"]);
 
-          debugPrint("🔍 EXAM: ${exam["name"]} | grade=$rawGrade | note=$rawNote | firstExam=$firstExam");
+          debugPrint(" EXAM: ${exam["name"]} | grade=$rawGrade | note=$rawNote | firstExam=$firstExam");
           return {
             "exam": exam,
-            "grade": rawGrade,   // ✅ إما قيمة حقيقية أو null (مش "null" string)
-            "note": rawNote,     // ✅ إما قيمة حقيقية أو null (مش "null" string)
+            "grade": rawGrade,
+            "note": rawNote,
             "studentId": item["studentId"] ?? item["stId"] ?? item["st"],
           };
         }).toList();
@@ -693,12 +678,10 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
 
   Future<bool> _submitGrade(int examId, String grade, String note) async {
     final int gradeInt = int.tryParse(grade) ?? 0;
-    debugPrint("📤 SUBMIT: stId=${widget.studentId}, examId=$examId, grade=$gradeInt, note=$note");
-
+    debugPrint(" SUBMIT: stId=${widget.studentId}, examId=$examId, grade=$gradeInt, note=$note");
     try {
-      // أول محاولة: INSERT
       final postResponse = await http.post(
-        Uri.parse("https://nourelman.runasp.net/api/StudentCources/AddStudentExamAsync"),
+        Uri.parse("https://nour-al-eman.runasp.net/api/StudentCources/AddStudentExamAsync"),
         headers: {"Content-Type": "application/json", "Accept": "text/plain"},
         body: jsonEncode({
           "stId": widget.studentId,
@@ -721,19 +704,17 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
         }
         return true;
       }
-
-      // لو duplicate key → نستخدم PUT UpdateStudentExam
       if (isDuplicate) {
-        debugPrint("🔄 Duplicate key detected, trying PUT UpdateStudentExam...");
+        debugPrint(" Duplicate key detected, trying PUT UpdateStudentExam...");
         final putUri = Uri.parse(
-          "https://nourelman.runasp.net/api/StudentCources/UpdateStudentExam"
+          "https://nour-al-eman.runasp.net/api/StudentCources/UpdateStudentExam"
               "?StID=${widget.studentId}&ExamId=$examId&Grade=$gradeInt&Note=${Uri.encodeComponent(note)}",
         );
         final putResponse = await http.put(
           putUri,
           headers: {"Accept": "text/plain"},
         );
-        debugPrint("📥 PUT RESPONSE: ${putResponse.statusCode} | ${putResponse.body}");
+        debugPrint(" PUT RESPONSE: ${putResponse.statusCode} | ${putResponse.body}");
 
         if (putResponse.statusCode == 200) {
           if (mounted) {
@@ -753,8 +734,6 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
   void _showGradingDialog(dynamic item, bool isGraded) {
     final exam = item["exam"] ?? item["ex"] ?? {};
     final int examId = exam["id"] ?? 0;
-
-    // ✅ FIX: القيم دلوقتي مضمونة مش فيها "null" string بسبب _cleanValue في _fetch
     final TextEditingController gradeController = TextEditingController(
         text: item["grade"]?.toString() ?? "");
     final TextEditingController noteController = TextEditingController(
@@ -782,7 +761,6 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
                       IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
                     ],
                   ),
-                  // ✅ FIX: لو في وضع العرض (isGraded) والـ note فاضي → متظهرش خانة التعليق خالص
                   if (!isGraded || noteController.text.isNotEmpty) ...[
                     const SizedBox(height: 20),
                     const Text("التعليق", style: TextStyle(fontWeight: FontWeight.bold, fontFamily: "Almarai")),
@@ -839,13 +817,24 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
   }
 
   Future<void> _startDownload(String? relativeUrl, String examName) async {
-    String url = "https://nourelman.runasp.net/api/StudentCources/DownloadLatest?levelId=${widget.levelId}&typeId=2";
-
+    if (relativeUrl == null || relativeUrl.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("رابط الملف غير متوفر"), backgroundColor: Colors.red));
+      }
+      return;
+    }
+    final String url = relativeUrl.startsWith('http')
+        ? relativeUrl
+        : "https://nour-al-eman.runasp.net$relativeUrl";
+    final String ext = relativeUrl.contains('.')
+        ? relativeUrl.split('.').last.split('?').first.toLowerCase()
+        : 'pdf';
     try {
       final directory = Directory('/storage/emulated/0/Download');
       if (!await directory.exists()) await directory.create(recursive: true);
 
-      String finalFileName = "${examName.replaceAll(' ', '_')}.png";
+      String finalFileName = "${examName.replaceAll(' ', '_')}.$ext";
 
       await FlutterDownloader.enqueue(
         url: url,
@@ -903,10 +892,8 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
             final exam = item["exam"] ?? {};
 
             final gradeVal = item["grade"];
-            // ✅ FIX: gradeVal هنا مضمون مش "null" string بسبب _cleanValue
             final bool isGraded = gradeVal != null;
-            debugPrint("🎨 BUILD item ${exam["name"]} | gradeVal=$gradeVal | isGraded=$isGraded");
-
+            debugPrint(" BUILD item ${exam["name"]} | gradeVal=$gradeVal | isGraded=$isGraded");
             return Container(
               margin: const EdgeInsets.only(bottom: 14),
               padding: const EdgeInsets.all(16),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'student_reports_screen.dart'; // استيراد ملف تقارير الطلاب الجديد
-import 'TeacherReportsScreen.dart'; // استيراد ملف تقارير الطلاب الجديد
+import 'student_reports_screen.dart';
+import 'TeacherReportsScreen.dart';
 
 class ReportsScreen extends StatefulWidget {
   @override
@@ -76,7 +76,6 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         if (title == 'تقارير الطالب') {
           Navigator.of(context).push(MaterialPageRoute(builder: (context) => StudentReportsScreen()));
         } else if (title == 'تقارير المعلم') {
-          // الانتقال لشاشة تقارير المعلمين الجديدة
           Navigator.of(context).push(MaterialPageRoute(builder: (context) => TeacherReportsScreen()));
         } else {
           Navigator.of(context).push(_createFadeRoute(title));

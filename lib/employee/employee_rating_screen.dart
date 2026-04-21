@@ -10,8 +10,6 @@ final Color _erOrange = const Color(0xFFC66422);
 final Color _erDark   = const Color(0xFF2E3542);
 
 const String _apiBase = 'https://nour-al-eman.runasp.net';
-
-// ── النوع: حافز أو خصم ───────────────────────────────────────
 const List<Map<String, dynamic>> _rateTypes = [
   {'id': 1, 'name': 'حافز'},
   {'id': 2, 'name': 'خصم'},
@@ -29,18 +27,14 @@ class _EmployeeRatingScreenState extends State<EmployeeRatingScreen> {
   List<Map<String, dynamic>> _employees = [];
   bool   _isLoading       = true;
   String _currentUserName = '---';
-
-  // فلاتر الجدول
   String _filterEmpName = '';
   int?   _filterTypeId;
-  String _sortField     = 'none';  // 'none' | 'rate' | 'bonus'
+  String _sortField     = 'none';
   bool   _sortAsc       = true;
 
   final ScrollController _scrollCtrl  = ScrollController();
   final ScrollController _hScrollCtrl = ScrollController();
   final TextEditingController _searchCtrl = TextEditingController();
-
-  // عرض الجدول
   static const double _tableWidth = 556.0;
 
   @override
@@ -56,9 +50,6 @@ class _EmployeeRatingScreenState extends State<EmployeeRatingScreen> {
     _searchCtrl.dispose();
     super.dispose();
   }
-
-  // ── API ───────────────────────────────────────────────────────
-
   Future<void> _init() async {
     await _fetchCurrentUser();
     await Future.wait([_fetchRatings(), _fetchEmployees()]);
@@ -75,7 +66,7 @@ class _EmployeeRatingScreenState extends State<EmployeeRatingScreen> {
         final name = jsonDecode(res.body)['data']?['name'];
         if (name != null && mounted) setState(() => _currentUserName = name);
       }
-    } catch (e) { debugPrint('❌ fetchCurrentUser: $e'); }
+    } catch (e) { debugPrint(' fetchCurrentUser: $e'); }
   }
 
   Future<void> _fetchRatings() async {
@@ -89,7 +80,7 @@ class _EmployeeRatingScreenState extends State<EmployeeRatingScreen> {
         if (mounted) setState(() =>
         _ratings = raw.map((e) => Map<String, dynamic>.from(e as Map)).toList());
       }
-    } catch (e) { debugPrint('❌ fetchRatings: $e'); }
+    } catch (e) { debugPrint(' fetchRatings: $e'); }
     finally { if (mounted) setState(() => _isLoading = false); }
   }
 
@@ -136,7 +127,7 @@ class _EmployeeRatingScreenState extends State<EmployeeRatingScreen> {
       } else {
         if (mounted) _showSnack('فشل الإضافة: ${res.statusCode}', Colors.red);
       }
-    } catch (e) { debugPrint('❌ addRating: $e'); }
+    } catch (e) { debugPrint(' addRating: $e'); }
   }
 
   Future<void> _updateRating(Map<String, dynamic> item,
@@ -157,14 +148,14 @@ class _EmployeeRatingScreenState extends State<EmployeeRatingScreen> {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(body),
       );
-      debugPrint('📥 Update: ${res.statusCode} ${res.body}');
+      debugPrint(' Update: ${res.statusCode} ${res.body}');
       if (res.statusCode == 200) {
         await _fetchRatings();
         if (mounted) _showSnack('تم التعديل بنجاح', Colors.green);
       } else {
         if (mounted) _showSnack('فشل التعديل: ${res.statusCode}', Colors.red);
       }
-    } catch (e) { debugPrint('❌ updateRating: $e'); }
+    } catch (e) { debugPrint(' updateRating: $e'); }
   }
 
   // ── Helpers ──────────────────────────────────────────────────
@@ -222,20 +213,14 @@ class _EmployeeRatingScreenState extends State<EmployeeRatingScreen> {
 
   List<Map<String, dynamic>> get _filtered {
     List<Map<String, dynamic>> list = List.from(_ratings);
-
-    // فلتر الاسم
     final q = _filterEmpName.trim().toLowerCase();
     if (q.isNotEmpty) {
       list = list.where((r) =>
           _getEmpName(r).toLowerCase().contains(q)).toList();
     }
-
-    // فلتر النوع
     if (_filterTypeId != null) {
       list = list.where((r) => _getTypeId(r) == _filterTypeId).toList();
     }
-
-    // ترتيب
     if (_sortField != 'none' && _sortField != 'noSort') {
       list.sort((a, b) {
         int cmp;
@@ -256,8 +241,6 @@ class _EmployeeRatingScreenState extends State<EmployeeRatingScreen> {
 
     return list;
   }
-
-  // ── Dialogs ──────────────────────────────────────────────────
 
   void _showAddDialog() {
     final valueCtrl = TextEditingController();
@@ -383,9 +366,6 @@ class _EmployeeRatingScreenState extends State<EmployeeRatingScreen> {
       ),
     );
   }
-
-  // ── Dialog Widgets ───────────────────────────────────────────
-
   Widget _fieldLabel(String label) => Padding(
     padding: const EdgeInsets.only(bottom: 6),
     child: Text(label, style: const TextStyle(
@@ -474,9 +454,6 @@ class _EmployeeRatingScreenState extends State<EmployeeRatingScreen> {
               color: Colors.white, fontFamily: 'Almarai')),
         )),
       ]);
-
-  // ── Filter Bar ───────────────────────────────────────────────
-
   Widget _filterBox({required Widget child}) => Container(
     height: 40,
     padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -493,10 +470,8 @@ class _EmployeeRatingScreenState extends State<EmployeeRatingScreen> {
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
       child: Column(
         children: [
-          // ── الصف الأول: بحث + النوع ──
           Row(
             children: [
-              // ── بحث باسم الموظف ──
               Expanded(
                 flex: 2,
                 child: _filterBox(
@@ -524,8 +499,6 @@ class _EmployeeRatingScreenState extends State<EmployeeRatingScreen> {
                 ),
               ),
               const SizedBox(width: 6),
-
-              // ── فلتر النوع ──
               Expanded(
                 flex: 2,
                 child: _filterBox(
@@ -557,10 +530,8 @@ class _EmployeeRatingScreenState extends State<EmployeeRatingScreen> {
             ],
           ),
           const SizedBox(height: 6),
-          // ── الصف الثاني: ترتيب + اتجاه ──
           Row(
             children: [
-              // ── ترتيب ──
               Expanded(
                 flex: 1,
                 child: _filterBox(
@@ -596,8 +567,6 @@ class _EmployeeRatingScreenState extends State<EmployeeRatingScreen> {
                 ),
               ),
               const SizedBox(width: 6),
-
-              // ── الاتجاه ──
               Expanded(
                 flex: 1,
                 child: _filterBox(
@@ -618,7 +587,6 @@ class _EmployeeRatingScreenState extends State<EmployeeRatingScreen> {
                       ],
                       onChanged: (v) => setState(() {
                         _sortAsc = v ?? true;
-                        // ✅ الإصلاح: لو مفيش حقل ترتيب مختار، نختار 'rate' تلقائياً
                         if (_sortField == 'none' || _sortField == 'noSort') {
                           _sortField = 'rate';
                         }
@@ -633,9 +601,6 @@ class _EmployeeRatingScreenState extends State<EmployeeRatingScreen> {
       ),
     );
   }
-
-  // ── Table ────────────────────────────────────────────────────
-
   Widget _buildHeader() {
     final s = TextStyle(color: _erDark,
         fontWeight: FontWeight.bold, fontFamily: 'Almarai', fontSize: 12);
@@ -701,8 +666,6 @@ class _EmployeeRatingScreenState extends State<EmployeeRatingScreen> {
     );
   }
 
-  // ── Build ────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     final rows = _filtered;
@@ -767,8 +730,6 @@ class _EmployeeRatingScreenState extends State<EmployeeRatingScreen> {
               ),
             ],
           ),
-
-          // ── زر الإضافة ──
           Positioned(
             bottom: 88, left: 24,
             child: SizedBox(

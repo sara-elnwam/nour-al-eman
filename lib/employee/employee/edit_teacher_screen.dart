@@ -31,7 +31,6 @@ class _EditTeacherScreenState extends State<EditTeacherScreen> {
   @override
   void initState() {
     super.initState();
-    // استخراج البيانات مع التأكد من الهيكل القادم من الـ API
     var data = widget.staffData['data'] ?? widget.staffData;
 
     _nameController = TextEditingController(text: data['name']?.toString() ?? "");
@@ -44,11 +43,9 @@ class _EditTeacherScreenState extends State<EditTeacherScreen> {
     _fetchLocations();
   }
   String _formatDate(dynamic date) {
-    // إذا كان التاريخ نل أو فارغ أو يحتوي على أصفار (غير منطقي)
     if (date == null ||
         date.toString().isEmpty ||
         date.toString().startsWith("0001")) {
-      // إرجاع تاريخ النهاردة بتنسيق YYYY-MM-DD
       return DateFormat('yyyy-MM-dd').format(DateTime.now());
     }
 
@@ -81,11 +78,10 @@ class _EditTeacherScreenState extends State<EditTeacherScreen> {
   Future<void> _saveData() async {
     setState(() => _isSaving = true);
     try {
-      // 1. استخراج الـ ID بدقة
       final data = widget.staffData['data'] ?? widget.staffData;
       final teacherId = data['id'];
 
-      print("Editing Teacher ID: $teacherId"); // تأكد ان الرقم ده 1297
+      print("Editing Teacher ID: $teacherId");
 
       final Map<String, dynamic> updateData = {
         "id": teacherId,
@@ -94,7 +90,6 @@ class _EditTeacherScreenState extends State<EditTeacherScreen> {
         "ssn": _ssnController.text,
         "locId": int.tryParse(_selectedLocId!) ?? 0,
         "educationDegree": _eduController.text,
-        // التأكد من وجود قيمة في الـ controller وإلا إرسال تاريخ اليوم بتنسيق السيرفر
         "joinDate": _joinDateController.text.isNotEmpty
             ? "${_joinDateController.text}T00:00:00.000Z"
             : "${DateFormat('yyyy-MM-dd').format(DateTime.now())}T00:00:00.000Z",
@@ -117,7 +112,7 @@ class _EditTeacherScreenState extends State<EditTeacherScreen> {
       print("Server Response Body: ${response.body}");
 
       if (response.statusCode == 200 || response.statusCode == 204) {
-        // نجح الحفظ
+
         Navigator.pop(context, true);
       } else {
         print("Failed to update. Check if the ID or fields are correct.");

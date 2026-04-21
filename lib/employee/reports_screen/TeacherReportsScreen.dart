@@ -162,7 +162,6 @@ class _TeacherReportsScreenState extends State<TeacherReportsScreen> with Single
           Center(
             child: isSubmitting
                 ? const CircularProgressIndicator(color: Color(0xFFD97706))
-            // تم تعديل نص الزر هنا
                 : _buildSubmitButton(" إرسال الطلب", type),
           ),
         ],

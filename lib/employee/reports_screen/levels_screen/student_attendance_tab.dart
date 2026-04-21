@@ -26,13 +26,12 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
     _fetchAttendance();
   }
 
-  // ترجمة الأرقام لكلمات زي ما الـ Web بيعمل بالظبط (Mapping)
   String _mapNoteToText(int? noteId) {
     switch (noteId) {
       case 1: return "ممتاز";
       case 2: return "جيد جداً";
       case 3: return "جيد";
-      case 5: return "ضعيف"; // موجود في الرسبونس بتاعك رقم 5
+      case 5: return "ضعيف";
       default: return "غير محدد";
     }
   }
@@ -46,7 +45,7 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
         if (mounted) {
           setState(() {
-            attendanceList = responseData['data'] ?? []; // سحب الداتا من key: data
+            attendanceList = responseData['data'] ?? [];
             isLoading = false;
           });
         }
@@ -64,7 +63,6 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
       textDirection: TextDirection.rtl,
       child: Column(
         children: [
-          // الهيدر - مطابق تماماً لصورة الويب اللي بعتها
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
             decoration: const BoxDecoration(
@@ -98,31 +96,12 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
                         padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 8),
                         child: Row(
                           children: [
-                            // 1. موعد الحلقة (سحب createDate من الرسبونس)
                             Expanded(flex: 2, child: Text(item['createDate']?.split('T')[0] ?? '', textAlign: TextAlign.center, style: const TextStyle(fontSize: 10))),
-
-                            // 2. الحضور (isPresent)
-                            Expanded(
-                              flex: 1,
-                              child: Text(
-                                item['isPresent'] == true ? "حضور" : "غياب",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: item['isPresent'] == true ? kSuccessGreen : kDangerRed, fontWeight: FontWeight.bold, fontSize: 10),
-                              ),
-                            ),
-
-                            // 3. حفظ قديم (oldAttendanceNote)
+                            Expanded(flex: 1, child: Text(item['isPresent'] == true ? "حضور" : "غياب", textAlign: TextAlign.center,
+                                style: TextStyle(color: item['isPresent'] == true ? kSuccessGreen : kDangerRed, fontWeight: FontWeight.bold, fontSize: 10)),),
                             Expanded(flex: 2, child: Text(_mapNoteToText(item['oldAttendanceNote']), textAlign: TextAlign.center, style: const TextStyle(fontSize: 10))),
-
-                            // 4. حفظ جديد (newAttendanceNote)
                             Expanded(flex: 2, child: Text(_mapNoteToText(item['newAttendanceNote']), textAlign: TextAlign.center, style: const TextStyle(fontSize: 10))),
-
-                            // 5. زر تعليق المعلم
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                isExpanded ? "إخفاء" : "تعليق المعلم",
-                                textAlign: TextAlign.center,
+                            Expanded(flex: 2, child: Text(isExpanded ? "إخفاء" : "تعليق المعلم", textAlign: TextAlign.center,
                                 style: TextStyle(color: isExpanded ? kDangerRed : kPrimaryBlue, fontWeight: FontWeight.bold, fontSize: 10, decoration: TextDecoration.underline),
                               ),
                             ),
@@ -130,8 +109,6 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
                         ),
                       ),
                     ),
-
-                    // الأنيميشن بتاع تعليق المعلم والتقييم (سحب note و points)
                     AnimatedSize(
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeInOut,
@@ -144,14 +121,12 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
                             ? Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // سحب تعليق المعلم الفعلي من السيرفر
                             Expanded(
                               child: Text(
                                   "تعليق المعلم: ${item['note'] ?? 'No comment'}",
                                   style: const TextStyle(color: kSuccessGreen, fontWeight: FontWeight.bold, fontSize: 11)
                               ),
                             ),
-                            // سحب التقييم بالنقاط الفعلي من السيرفر
                             Text(
                                 "التقييم: ${item['points'] ?? 0} نقاط",
                                 style: const TextStyle(color: kSuccessGreen, fontWeight: FontWeight.bold, fontSize: 11)

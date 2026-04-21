@@ -66,10 +66,6 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
     }
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // Persistence
-  // ══════════════════════════════════════════════════════════════════════════
-
   Future<void> _loadCachedThenFetch() async {
     await _loadFromCache();
     await _fetchAndFillForm();
@@ -101,10 +97,6 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
     } catch (_) {}
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // API
-  // ══════════════════════════════════════════════════════════════════════════
-
   Map<String, dynamic> _emptyEntry(Student s) => {
     "stId"   : s.id,
     "name"   : s.name,
@@ -118,7 +110,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
   Future<void> _fetchAndFillForm() async {
     if (mounted) setState(() => _isLoading = true);
     try {
-      final url = "https://nourelman.runasp.net/api/Group/GetGroupAttendace?GroupId=${widget.groupId}";
+      final url = "https://nour-al-eman.runasp.net/api/Group/GetGroupAttendace?GroupId=${widget.groupId}";
       final res = await http.get(Uri.parse(url));
       if (res.statusCode != 200) return;
 
@@ -209,7 +201,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
 
     try {
       final res = await http.post(
-        Uri.parse("https://nourelman.runasp.net/api/StudentAttendance/submit"),
+        Uri.parse("https://nour-al-eman.runasp.net/api/StudentAttendance/submit"),
         headers: {"accept": "*/*", "Content-Type": "application/json"},
         body: jsonEncode(payload),
       );
@@ -231,7 +223,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
 
   Future<void> _fetchHistoryOnly() async {
     try {
-      final url = "https://nourelman.runasp.net/api/Group/GetGroupAttendace?GroupId=${widget.groupId}";
+      final url = "https://nour-al-eman.runasp.net/api/Group/GetGroupAttendace?GroupId=${widget.groupId}";
       final res = await http.get(Uri.parse(url));
       if (res.statusCode != 200) return;
 
@@ -261,9 +253,6 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
     }
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // Helpers
-  // ══════════════════════════════════════════════════════════════════════════
 
   String? _toRating(dynamic index) {
     if (index == null) return null;
@@ -289,9 +278,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
     ));
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // Build
-  // ══════════════════════════════════════════════════════════════════════════
+
 
   @override
   Widget build(BuildContext context) {
@@ -315,11 +302,8 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // نسب الأعمدة الثابتة
-  // ═══════════════════════════════════════════════════════════════════════════
-  static const double _c1  = 44;  // حضور  (ثابت)
-  static const double _c4  = 44;  // تعليق (ثابت)
+  static const double _c1  = 44;
+  static const double _c4  = 44;
   static const double _gap = 4;
 
   Widget _buildFormSection() {
@@ -336,13 +320,10 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          // عرض المساحة المتاحة بعد طرح الأعمدة الثابتة والـ padding والـ gaps
           final double available =
               constraints.maxWidth - 16 - _c1 - _c4 - (_gap * 4);
           final double cName   = available * 0.35;
           final double cOldNew = available * 0.325;
-
-          // ── دالة بناء خلية الهيدر بنفس أبعاد خلايا الصف تماماً ──────────
           Widget colHeader(String t, double w) => SizedBox(
             width: w,
             child: Text(
@@ -359,7 +340,6 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ── هيدر ──────────────────────────────────────────────────────
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
                 decoration: const BoxDecoration(
@@ -383,7 +363,6 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
                   ],
                 ),
               ),
-              // ── صفوف الطلاب ───────────────────────────────────────────────
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -410,12 +389,11 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
 
-          // ── اسم الطالب ────────────────────────────────────────────────────
           SizedBox(
             width: cName,
             child: Text(
               entry["name"],
-              textAlign: TextAlign.center, // ✅ محاذاة مطابقة للهيدر
+              textAlign: TextAlign.center,
               style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -427,10 +405,9 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
           ),
           SizedBox(width: _gap),
 
-          // ── حضور ─────────────────────────────────────────────────────────
           SizedBox(
             width: _c1,
-            child: Center( // ✅ نفس عرض الهيدر + Center
+            child: Center(
               child: Transform.scale(
                 scale: 0.85,
                 child: Checkbox(
@@ -455,8 +432,6 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
             ),
           ),
           SizedBox(width: _gap),
-
-          // ── حفظ قديم ─────────────────────────────────────────────────────
           SizedBox(
             width: cOldNew,
             child: _IndependentDrop(
@@ -476,7 +451,6 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
           ),
           SizedBox(width: _gap),
 
-          // ── حفظ جديد ─────────────────────────────────────────────────────
           SizedBox(
             width: cOldNew,
             child: _IndependentDrop(
@@ -496,10 +470,9 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
           ),
           SizedBox(width: _gap),
 
-          // ── تعليق ─────────────────────────────────────────────────────────
           SizedBox(
             width: _c4,
-            child: Center( // ✅ نفس عرض الهيدر + Center
+            child: Center(
               child: InkWell(
                 onTap: present ? () => _showNoteDialog(i) : null,
                 borderRadius: BorderRadius.circular(8),
@@ -527,9 +500,6 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
     );
   }
 
-  // ═══════════════════════════════════
-  // زر الحفظ
-  // ═══════════════════════════════════
   Widget _buildSaveButton() {
     return SafeArea(
       child: Container(
@@ -574,9 +544,6 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
     );
   }
 
-  // ═══════════════════════════════════
-  // History السابق
-  // ═══════════════════════════════════
   Widget _buildHistorySection() {
     if (_historyByStudent.isEmpty) return const SizedBox.shrink();
 
@@ -746,9 +713,6 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
     );
   }
 
-  // ═══════════════════════════════════
-  // ديالوج التعليق
-  // ═══════════════════════════════════
   void _showNoteDialog(int i) {
     final noteCtrl   = TextEditingController(text: _newEntries[i]["note"]);
     final pointsCtrl = TextEditingController(
@@ -836,11 +800,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen>
   }
 }
 
-// ══════════════════════════════════════════════════════════
-// Widgets مساعدة
-// ══════════════════════════════════════════════════════════
 
-/// StatefulWidget مستقل لكل dropdown مع محاذاة مركزية مطابقة للهيدر
 class _IndependentDrop extends StatefulWidget {
   final String? value;
   final List<String> options;
@@ -881,14 +841,14 @@ class _IndependentDropState extends State<_IndependentDrop> {
     final safeVal = widget.options.contains(_localValue) ? _localValue : null;
 
     return Container(
-      alignment: Alignment.center, // ✅ يضمن محاذاة الـ dropdown تحت الهيدر بالظبط
+      alignment: Alignment.center,
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: safeVal,
           isExpanded: true,
           hint: Text(
             "—",
-            textAlign: TextAlign.center, // ✅ الـ hint متمركز
+            textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
           ),
           style: const TextStyle(
@@ -896,7 +856,7 @@ class _IndependentDropState extends State<_IndependentDrop> {
               color: Color(0xFF1A2340),
               fontFamily: 'Almarai'),
           iconSize: 14,
-          alignment: Alignment.center, // ✅ محاذاة القيمة المختارة في المنتصف
+          alignment: Alignment.center,
           onChanged: widget.enabled
               ? (val) {
             setState(() => _localValue = val);
@@ -906,7 +866,7 @@ class _IndependentDropState extends State<_IndependentDrop> {
           items: widget.options
               .map((e) => DropdownMenuItem<String>(
             value: e,
-            alignment: Alignment.center, // ✅ العناصر متمركزة
+            alignment: Alignment.center,
             child: Text(e, textAlign: TextAlign.center),
           ))
               .toList(),

@@ -60,8 +60,6 @@ class CoursesScreen extends StatelessWidget {
       ),
     );
   }
-
-  //  WaitingListScreen
   Widget _buildCourseRowCard(
       BuildContext context, {
         required String title,

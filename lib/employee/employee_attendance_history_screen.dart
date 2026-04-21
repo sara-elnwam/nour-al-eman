@@ -53,29 +53,16 @@ class _AttendanceHistoryScreenState
         _showError("لم يتم العثور على بيانات المستخدم");
         return;
       }
-
-      debugPrint("👤 userId = $userId");
-
-      // ✅ اطبع كل الـ keys عشان نشوف المحلي محفوظ فين
       final allKeys = prefs.getKeys();
       final attendanceKeys = allKeys.where((k) => k.startsWith('local_attendance')).toList();
-      debugPrint("🗂️ All attendance keys: $attendanceKeys");
-
-      // ── الخطوة 1: جيب كل السجلات المحلية (من كل الـ keys) ──
-      // كل بصمة تظهر لوحدها - مش بنعمل merge بالتاريخ
       final List<AttendanceData> allRecords = [];
-      // نستخدم unique key (تاريخ + checkInTime) عشان نمنع التكرار الحقيقي فقط
       final Set<String> addedKeys = {};
-
       final possibleKeys = {'local_attendance_$userId', ...attendanceKeys};
-      debugPrint("🔍 Checking local keys: $possibleKeys");
-
       for (final localKey in possibleKeys) {
         final String? localJson = prefs.getString(localKey);
         if (localJson == null) continue;
         try {
           final List<dynamic> localList = jsonDecode(localJson);
-          debugPrint("📱 Key '$localKey' has ${localList.length} records");
           for (var item in localList) {
             final normDate = _normalizeDate(item['date']?.toString());
             final inTime = item['checkInTime']?.toString() ?? '';
@@ -93,7 +80,6 @@ class _AttendanceHistoryScreenState
             ));
           }
         } catch (e) {
-          debugPrint('Error loading $localKey: $e');
         }
       }
 
@@ -101,7 +87,6 @@ class _AttendanceHistoryScreenState
         final String token2 = prefs.getString('user_token') ?? '';
         final url =
             "https://nour-al-eman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=${prefs.getString('user_guid') ?? ''}";
-        debugPrint("📡 Fetching server: $url");
         final response = await http.get(
           Uri.parse(url),
           headers: {
@@ -109,7 +94,6 @@ class _AttendanceHistoryScreenState
               'Authorization': 'Bearer $token2',
           },
         );
-        debugPrint("📡 Status: ${response.statusCode}");
 
         if (response.statusCode == 200) {
           final decoded = jsonDecode(response.body);
@@ -121,7 +105,6 @@ class _AttendanceHistoryScreenState
             final inTime = item['checkInTime']?.toString() ?? '';
             final uniqueKey = '$normDate|$inTime';
             if (normDate.isEmpty || addedKeys.contains(uniqueKey)) continue;
-            // ✅ أضف فقط لو مش موجود محلياً (بنفس التاريخ + وقت الحضور)
             addedKeys.add(uniqueKey);
             allRecords.add(AttendanceData(
               userName: item['userName'] ?? item['username'],
@@ -138,7 +121,7 @@ class _AttendanceHistoryScreenState
         debugPrint('Server fetch error: $e');
       }
 
-      debugPrint("✅ Total records to display: ${allRecords.length}");
+      debugPrint(" Total records to display: ${allRecords.length}");
       _processData(allRecords);
 
     } catch (e) {
@@ -159,8 +142,6 @@ class _AttendanceHistoryScreenState
     List<AttendanceData> validData = rawData
         .where((item) => _parseServerDate(item.date) != null)
         .toList();
-
-    // ✅ ترتيب من الأحدث للأقدم (تاريخ + وقت الحضور)
     validData.sort((a, b) {
       final dateA = _parseServerDate(a.date);
       final dateB = _parseServerDate(b.date);
@@ -169,7 +150,6 @@ class _AttendanceHistoryScreenState
       if (dateB == null) return -1;
       final dateCmp = dateB.compareTo(dateA);
       if (dateCmp != 0) return dateCmp;
-      // نفس اليوم → رتب بوقت الحضور (الأحدث أول)
       final inA = a.checkInTime ?? '';
       final inB = b.checkInTime ?? '';
       return inB.compareTo(inA);
@@ -182,9 +162,6 @@ class _AttendanceHistoryScreenState
       if (!groups.containsKey(monthYear)) groups[monthYear] = [];
       groups[monthYear]!.add(entry);
     }
-
-    debugPrint("📅 Months: ${groups.keys.toList()}");
-
     setState(() {
       _groupedAttendance = groups;
       _availableMonths = groups.keys.toList();

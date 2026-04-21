@@ -32,10 +32,7 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
       final response = await http.get(
         Uri.parse('https://nour-al-eman.runasp.net/api/Employee/GetById?id=${widget.empId}'),
       );
-
-      // ✅ تأكد إن الـ widget لسه موجود قبل setState
       if (!mounted) return;
-
       if (response.statusCode == 200) {
         setState(() {
           _empData = jsonDecode(response.body)['data'];
@@ -45,7 +42,6 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
         setState(() => _isLoading = false);
       }
     } catch (e) {
-      // ✅ تأكد إن الـ widget لسه موجود قبل setState
       if (!mounted) return;
       setState(() => _isLoading = false);
     }
@@ -89,7 +85,6 @@ class _EmployeeDetailsScreenState extends State<EmployeeDetailsScreen> {
   }
 
   Widget _buildInfoItem(String label, dynamic value) {
-    // التأكد من أن القيمة ليست null وتحويلها لنص
     String displayValue = (value == null || value.toString() == "null" || value.toString().isEmpty)
         ? "---"
         : value.toString();

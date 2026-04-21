@@ -22,8 +22,6 @@ class _StudentsScreenState extends State<StudentsScreen> {
     super.initState();
     _fetchStudentsData();
   }
-
-  // بتتحدث تلقائياً كل ما ترجعي لشاشة الطلاب
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -97,10 +95,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
-
-
       final url = Uri.parse('https://nour-al-eman.runasp.net/api/Account/DeActivate?id=$studentId&type=0');
-
       final response = await http.post(
         url,
         headers: {
@@ -180,7 +175,6 @@ class _StudentsScreenState extends State<StudentsScreen> {
     );
   }
 
-  // --- بوب آب الحذف المحدث بنفس ستايل شاشة المدرسين ---
   void _showDeleteConfirmDialog(int studentId) {
     showDialog(
       context: context,

@@ -17,9 +17,9 @@ import 'employee/employees_screen.dart';
 import 'employee_attendance_screen.dart';
 import 'employee_attendance_history_screen.dart';
 import 'reports_screen/levels_screen/levels_screen.dart';
-import 'facility_type_screen.dart'; // ✅ شاشة أنواع المصروفات
-import 'expenses_screen.dart';      // ✅ شاشة المصروفات
-import 'expenses_hub_screen.dart';  // ✅ هاب المصروفات
+import 'facility_type_screen.dart';
+import 'expenses_screen.dart';
+import 'expenses_hub_screen.dart';
 
 
 final Color primaryOrange = Color(0xFFC66422);
@@ -53,7 +53,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
       final prefs = await SharedPreferences.getInstance();
       String? numericId = prefs.getString('user_id');
 
-      debugPrint("📌 user_id = $numericId");
+      debugPrint(" user_id = $numericId");
 
       if (numericId == null || numericId.isEmpty) {
         setState(() => _isLoading = false);
@@ -63,10 +63,6 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
       final profileResponse = await http.get(
         Uri.parse('https://nour-al-eman.runasp.net/api/Employee/GetById?id=$numericId'),
       );
-
-      debugPrint("📥 Status: ${profileResponse.statusCode}");
-      debugPrint("📥 Body: ${profileResponse.body}");
-
       if (profileResponse.statusCode == 200) {
         final Map<String, dynamic> decodedData = jsonDecode(profileResponse.body);
         final employeeModel = EmployeeModel.fromJson(decodedData);
@@ -79,11 +75,9 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
         final locId = decodedData['data']?['locId'];
         if (locId != null) {
           await prefs.setInt('user_loc_id', locId as int);
-          debugPrint("✅ Saved user_loc_id: $locId");
         }
       }
     } catch (e) {
-      debugPrint("❌ Error: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -120,19 +114,19 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
             : IndexedStack(
           index: _currentIndex,
           children: [
-            MainAttendanceScreen(),                              // 0
-            _buildPersonalDataContent(),                         // 1
-            EmployeeAttendanceHistoryScreen(key: _historyKey),   // 2
-            StudentsScreen(),                                    // 3
-            AllEmployeesScreen(),                                // 4
-            EmployeesScreen(),                                   // 5
-            LevelsScreen(),                                      // 6
-            const BranchesScreen(),                              // 7
-            const CoursesScreen(),                               // 8
-            WaitingListScreen(),                                 // 9
-            StaffManagementScreen(),                             // 10
-            ReportsScreen(),                                     // 11
-            const ExpensesHubScreen(),                           // 12 ✅ هاب المصروفات
+            MainAttendanceScreen(),
+            _buildPersonalDataContent(),
+            EmployeeAttendanceHistoryScreen(key: _historyKey),
+            StudentsScreen(),
+            AllEmployeesScreen(),
+            EmployeesScreen(),
+            LevelsScreen(),
+            const BranchesScreen(),
+            const CoursesScreen(),
+            WaitingListScreen(),
+            StaffManagementScreen(),
+            ReportsScreen(),
+            const ExpensesHubScreen(),
           ],
         ),
       ),

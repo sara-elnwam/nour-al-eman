@@ -55,7 +55,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
   List<File> _pendingFiles = [];
   List<String> _pendingFileNames = [];
   Map<String, dynamic>? _pendingTask;
-  // IDs محفوظة محلياً - بتفضل حتى بعد إغلاق التطبيق
   Set<int> _answeredTaskIds = {};
   Set<int> _uploadedTaskIds = {};
 
@@ -76,7 +75,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
     ));
 
     _loadInitialData();
-    // تشغيل الأنيميشن تلقائياً عند أول دخول للشاشة
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _pageAnimationController.forward();
     });
@@ -87,8 +85,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
     _pageAnimationController.dispose();
     super.dispose();
   }
-
-  // ── تحميل الـ IDs المحفوظة من SharedPreferences عند فتح التطبيق ──
   Future<void> _loadSavedTaskIds() async {
     final prefs = await SharedPreferences.getInstance();
     final String studentId = studentFullData?['id']?.toString() ?? '';
@@ -102,7 +98,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
     }
   }
 
-  // ── حفظ ID السؤال المجاوب ──
   Future<void> _saveAnsweredTaskId(int id) async {
     final prefs = await SharedPreferences.getInstance();
     final String studentId = studentFullData?['id']?.toString() ?? '';
@@ -114,7 +109,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
     if (mounted) setState(() => _answeredTaskIds.add(id));
   }
 
-  // ── حفظ ID البحث المرفوع ──
   Future<void> _saveUploadedTaskId(int id) async {
     final prefs = await SharedPreferences.getInstance();
     final String studentId = studentFullData?['id']?.toString() ?? '';
@@ -166,26 +160,16 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
   }
   Future<void> _loadInitialData() async {
     final prefs = await SharedPreferences.getInstance();
-
     String? token = widget.loginData?['token']?.toString() ?? prefs.getString('user_token');
-
-    // ← الحل: السيرفر بيرجع userId (رقمي) مباشرة في الـ response
-    // مثال: {"userId":4,"userType":0,"user_Id":"5bf6a1c9-..."}
     String? numericId = widget.loginData?['userId']?.toString() ?? prefs.getString('user_id');
-
     debugPrint("DEBUG: numericId from loginData: $numericId");
-
-    // لو لقيناه مباشرة، بنروح للـ GetById فوراً بدون أي بحث
     if (numericId != null && numericId.isNotEmpty && numericId != "0" && numericId != "null") {
       await prefs.setString('student_id', numericId);
       await _fetchStudentProfile(numericId, token);
       return;
     }
-
-    // fallback: لو ملقناش، نبحث في GetAll بالـ GUID
     String? savedGuid = widget.loginData?['user_Id']?.toString() ?? prefs.getString('user_guid');
     debugPrint("DEBUG: Fallback - searching by GUID: $savedGuid");
-
     try {
       final allResponse = await http.get(
         Uri.parse('$baseUrl/Student/GetAll'),
@@ -194,13 +178,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
           if (token != null) 'Authorization': 'Bearer $token'
         },
       );
-
       if (allResponse.statusCode == 200) {
         final List<dynamic> allStudents = jsonDecode(allResponse.body)['data'] ?? [];
-
         dynamic matched;
-
-        // بحث بالـ GUID
         if (savedGuid != null && savedGuid.isNotEmpty) {
           matched = allStudents.firstWhere(
                 (s) =>
@@ -210,8 +190,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
             orElse: () => null,
           );
         }
-
-        // بحث بالتليفون
         if (matched == null) {
           String? savedPhone = prefs.getString('user_phone');
           if (savedPhone != null && savedPhone.isNotEmpty) {
@@ -221,7 +199,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
             );
           }
         }
-
         if (matched != null) {
           String foundId = matched['id'].toString();
           debugPrint("DEBUG: Found student ID via GetAll: $foundId");
@@ -239,27 +216,24 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
   Future<void> _fetchStudentProfile(String id, String? token) async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/Student/GetById?id=$id'),
         headers: { if (token != null) 'Authorization': 'Bearer $token' },
       );
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
           studentFullData = data['data'];
           _isLoading = false;
         });
-
         _fetchAttendance(id);
         _fetchCourses();
         _fetchStudentTasks();
-        _loadSavedTaskIds(); // تحميل الـ IDs المحفوظة محلياً
-
+        _loadSavedTaskIds();
       } else if (response.statusCode == 400 && id.contains('-')) {
-        // لو الـ ID GUID وفشل، بنحاول ننقذ الموقف بالبحث
         _rescueByUserName(token);
       } else {
         if (mounted) setState(() => _isLoading = false);
@@ -269,65 +243,43 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
   Future<void> _rescueByUserName(String? token) async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/Student/GetAll'),
         headers: { if (token != null) 'Authorization': 'Bearer $token' },
       );
-
       if (response.statusCode == 200) {
         final List<dynamic> allStudents = jsonDecode(response.body)['data'] ?? [];
-
-        // 1. البيانات اللي معانا من اللوجن
         String targetPhone = widget.loginData?['phoneNumber']?.toString().trim() ?? "";
         String targetName = widget.loginData?['userName']?.toString().toLowerCase().trim() ?? "";
-
         dynamic matchedStudent;
-
-        // 2. المحاولة الأولى: البحث برقم التليفون (أدق حاجة)
         matchedStudent = allStudents.firstWhere(
               (s) => s['phoneNumber']?.toString().trim() == targetPhone,
           orElse: () => null,
         );
-
-        // 3. المحاولة الثانية: لو ملقاش، ندور بالاسم في كل مكان (userName أو حتى لو مكتوب في الـ group)
         if (matchedStudent == null) {
           matchedStudent = allStudents.firstWhere(
                 (s) {
               String sName = (s['userName'] ?? "").toString().toLowerCase();
-              // بنشوف لو الاسم موجود في أي حقل نصي جوه بيانات الطالب
               return (sName.isNotEmpty && sName.contains(targetName)) ||
                   s.toString().toLowerCase().contains(targetName);
             },
             orElse: () => null,
           );
         }
-
-        // 4. لو ملقاش — نوقف التحميل ونظهر خطأ بدل ما ناخد أول طالب
         if (matchedStudent == null) {
           debugPrint("DEBUG: Could not find student - no fallback used");
           if (mounted) setState(() => _isLoading = false);
           return;
         }
-
         if (matchedStudent != null) {
           String realId = matchedStudent['id'].toString();
-
           setState(() {
-            // 1. تحديث الكائن الأساسي
             studentFullData = matchedStudent;
-
-            // 2. "تسكين" البيانات في المتغيرات اللي الشاشة بتعرضها
-            // لو عندك متغيرات زي studentName أو studentCode، حدثيها هنا
-            // مثال:
-            // studentName = matchedStudent['name'] ?? matchedStudent['userName'] ?? "---";
-
             _isLoading = false;
           });
-
-          // 3. الخطوة الأهم: نطلب البروفايل الكامل بالـ ID اللي لقيناه
-          // ده هيجيب الحقول الناقصة (زي المدرسة، المستوى، إلخ) لو موجودة للسيرفر
           _fetchStudentProfile(realId, token);
         }
       }
@@ -336,7 +288,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
       if (mounted) setState(() => _isLoading = false);
     }
   }
-// دالة مساعدة لحفظ البيانات وتشغيل بقية الشاشات
   void _setupStudentData(Map<String, dynamic> data) async {
     String numericId = data['id'].toString();
     final prefs = await SharedPreferences.getInstance();
@@ -347,22 +298,18 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
         studentFullData = data;
         _isLoading = false;
       });
-      // تشغيل جلب الحضور بالـ ID الصحيح (5 مثلاً)
       _fetchAttendance(numericId);
     }
   }
-// دالة مساعدة لتنظيم الكود ومنع التكرار
   void _handleSuccessfulProfile(Map<String, dynamic> data) async {
     String numericId = data['id'].toString();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('student_id', numericId);
-
     if (mounted) {
       setState(() {
         studentFullData = data;
         _isLoading = false;
       });
-      // هنا بنطلب الحضور بالـ ID الرقمي الصح (5 مثلاً) فالداتا تظهر
       _fetchAttendance(numericId);
     }
   }
@@ -377,7 +324,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
 
   Future<void> _fetchStudentTasks() async {
     if (!mounted) return;
-    // مسح الداتا القديمة فوراً قبل جلب الجديدة — يمنع ظهور بيانات قديمة
     setState(() {
       _isTasksLoading = true;
       studentTasksList = [];
@@ -478,7 +424,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
   Widget _buildNoUploadsCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 40), // زيادة الطول ليكون مثل الويب
+      padding: const EdgeInsets.symmetric(vertical: 40),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
@@ -494,7 +440,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
     );
   }
   Future<void> _submitTaskAnswer(Map<String, dynamic> task) async {
-    // 1. التأكد من أن الطالب كتب نصاً قبل الإرسال
     if (_answerController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("⚠ يرجى كتابة الإجابة أولاً"))
@@ -507,22 +452,16 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
     try {
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('user_token');
-
-      // 2. تجهيز البارامترات المطلوبة للـ API
       final queryParams = {
-        'examId': task['id'].toString(), // ← مهم جداً عشان السيرفر يعرف يحفظ على أي سؤال
+        'examId': task['id'].toString(),
         'levelId': task['levelId'].toString(),
         'typeId': task['typeId'].toString(),
         'stId': studentFullData?['id']?.toString() ?? "5",
         'note': _answerController.text,
       };
-
-      // 3. بناء الرابط النهائي كما في الـ Swagger
       final uri = Uri.parse('https://nour-al-eman.runasp.net/api/StudentCources/UploadStudentExamWithNoFile')
           .replace(queryParameters: queryParams);
-
-      debugPrint("📡 Submitting to: $uri");
-
+      debugPrint(" Submitting to: $uri");
       final response = await http.post(
         uri,
         headers: {
@@ -530,12 +469,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
           if (token != null) 'Authorization': 'Bearer $token',
         },
       );
-
-      // 4. معالجة الرد وتحديث واجهة الموبايل
       if (response.statusCode == 200) {
         _answerController.clear();
-        // بعد النجاح: refresh من السيرفر مباشرة — السيرفر هو المرجع
-        // السيرفر هيرجع studentExams ممليانة فالسؤال هيختفي تلقائياً
         await _fetchStudentTasks();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -590,11 +525,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
-        // لتبديل مكان الأيقونة والنص حسب اللغة
         textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // معلومات المهمة
           Expanded(
             child: Column(
               crossAxisAlignment: isArabic ? CrossAxisAlignment.start : CrossAxisAlignment.start,
@@ -611,7 +544,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
               ],
             ),
           ),
-// داخل دالة _buildTaskHeaderCard
           InkWell(
             onTap: () => _handlePickFile(task: task),
             child: Row(
@@ -781,26 +713,15 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
       return const Center(child: CircularProgressIndicator());
     }
     final bool isArabic = Localizations.localeOf(context).languageCode == 'ar';
-
-    // typeId=2: أبحاث — نفس منطق السؤال الأسبوعي بالظبط
-    // خد أحدث بحث واحد بس (أعلى ID من كل الأبحاث)
-    // لو الأحدث اترفع (exams > 0) → اعرض "لا يوجد واجبات"
-    // لو الأحدث لم يترفع (exams = 0) → اعرضه للطالب
     final allResearch = studentTasksList.where((t) => t['typeId'] == 2).toList();
-
     final latestResearch = allResearch.isNotEmpty
         ? allResearch.reduce((a, b) => (a['id'] ?? 0) > (b['id'] ?? 0) ? a : b)
         : null;
-
     final bool latestResearchUploaded = latestResearch == null
         || (latestResearch['studentExams'] as List? ?? []).isNotEmpty;
-
-    // للعرض: لو في بحث جديد لم يترفع، اعرضه — غير كده فاضي
     final pendingResearch = (latestResearch != null && !latestResearchUploaded)
         ? [latestResearch]
         : <dynamic>[];
-
-    // typeId=1: السؤال الأسبوعي — أحدث سؤال واحد بس (أعلى ID)
     final allWeekly = studentTasksList.where((t) => t['typeId'] == 1).toList();
     final latestWeekly = allWeekly.isNotEmpty
         ? allWeekly.reduce((a, b) => (a['id'] ?? 0) > (b['id'] ?? 0) ? a : b)
@@ -835,7 +756,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
   }
   Widget _buildTaskAnswerCard(Map<String, dynamic> task, TextAlign textAlign) {
     final bool isArabic = Localizations.localeOf(context).languageCode == 'ar';
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -852,10 +772,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
         ],
       ),
       child: Column(
-        // تجبر العناصر على التوجه لليمين في حالة العربي
         crossAxisAlignment: isArabic ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          // الاسم (sara) - تم استخدامه لإجبار المحاذاة لليمين
           SizedBox(
             width: double.infinity,
             child: Text(
@@ -865,7 +783,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
             ),
           ),
           const SizedBox(height: 4),
-          // الوصف (testquestion) - تم استخدامه لإجبار المحاذاة لليمين
           SizedBox(
             width: double.infinity,
             child: Text(
@@ -875,10 +792,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
             ),
           ),
           const SizedBox(height: 20),
-
-          // صندوق النص المنحني
           TextField(
-            controller: _answerController, // تأكدي من ربط الكنترول للإجابة
+            controller: _answerController,
             maxLines: 8,
             textAlign: isArabic ? TextAlign.right : TextAlign.left,
             decoration: InputDecoration(
@@ -902,14 +817,12 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
             ),
           ),
           const SizedBox(height: 20),
-
-          // زر حفظ الإجابة (تصغير العرض والطول ووضعه في المنتصف)
           Center(
             child: SizedBox(
-              width: 190, // تصغير العرض سيكا كمان
-              height: 50, // تصغير الطول سيكا كمان ليصبح أنحف جداً
+              width: 190,
+              height: 50,
               child: ElevatedButton(
-                onPressed: () => _submitTaskAnswer(task), // استخدام الدالة الفعلية للإرسال
+                onPressed: () => _submitTaskAnswer(task),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD35400),
                   elevation: 0,
@@ -922,7 +835,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
                   isArabic ? "حفظ الإجابة" : "Save Answer",
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 15, // تصغير الخط ليتناسب مع الحجم الجديد
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -943,13 +856,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
       if (result != null) {
         PlatformFile file = result.files.first;
         print("تم اختيار ملف: ${file.name}");
-
-        // هنا يمكنك إظهار رسالة نجاح للمستخدم
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("تم اختيار: ${file.name}")),
         );
       } else {
-        // المستخدم أغلق نافذة الاختيار
         print("لم يتم اختيار أي ملف");
       }
     } catch (e) {
@@ -957,12 +867,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
     }
   }
   Future<void> _submitTask(int taskId) async {
-    // هنا تضعين كود الـ API الخاص بحفظ الإجابة
     print("جاري حفظ الإجابة للمهمة رقم: $taskId");
   }
-
-
-  // دوال الجلب الأخرى
   Future<void> _fetchExams(String id) async {
     setState(() => _isExamsLoading = true);
     try {
@@ -1096,19 +1002,14 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
     final group = data['group'];
     final level = data['level'];
 
-    // --- معالجة التاريخ (تعديل لضمان الدقة) ---
     String joinDateStr = data['joinDate']?.toString() ?? "";
     String displayJoinDate;
-
-    // إذا كان التاريخ نل، فارغ، أو يحتوي على كلمة "null" نصية
     if (joinDateStr.isEmpty || joinDateStr == "null") {
       DateTime now = DateTime.now();
       displayJoinDate = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
     } else {
-      // محاولة قص التاريخ إذا كان بصيغة ISO (مثل 2024-05-20T00:00:00)
       displayJoinDate = joinDateStr.contains('T') ? joinDateStr.split('T')[0] : joinDateStr;
     }
-    // معالجة مواعيد الحلقات
     String sessionTimes = "---";
     if (group != null && group['groupSessions'] != null) {
       List sessions = group['groupSessions'];
@@ -1145,7 +1046,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
       ],
     );
   }
-// دالة رسم الهيدر الأزرق مثل الويب
   Widget _buildSectionHeader(String title) {
     return Container(
       width: double.infinity,
@@ -1159,12 +1059,11 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
       child: Text(
         title,
         style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 18),
-        textAlign: TextAlign.right, // لغة الويب تظهر العناوين يميناً
+        textAlign: TextAlign.right,
       ),
     );
   }
 
-// دالة تظهر عند عدم وجود مهام
   Widget _buildNoTasksView() {
     return Center(
       child: Column(
@@ -1422,7 +1321,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
             _forceLogout();
           } else {
             if (_selectedIndex != index) {
-              // نحدث الـ state أولاً قبل إغلاق الدراور — يمنع الـ lag
               setState(() => _selectedIndex = index);
               _pageAnimationController.reset();
               _pageAnimationController.forward();
@@ -1432,12 +1330,11 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
               else if (index == 3) _fetchStudentTasks();
               else if (index == 4) _fetchExams(studentId);
             }
-            // إغلاق الدراور بعد تحديث الـ state مباشرةً
             Navigator.pop(context);
           }
         },
-      ), // ListTile
-    ); // AnimatedContainer
+      ),
+    );
   }
 
   Widget _buildSectionLabel(String title, IconData icon) {

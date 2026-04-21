@@ -45,7 +45,7 @@ class _GradingExamsScreenState extends State<GradingExamsScreen> {
     });
 
     final url =
-        "https://nourelman.runasp.net/api/StudentCources/GetStudentsExamByLevel?levelId=${widget.levelId}";
+        "https://nour-al-eman.runasp.net/api/StudentCources/GetStudentsExamByLevel?levelId=${widget.levelId}";
 
     try {
       final res = await http.get(Uri.parse(url));
@@ -103,7 +103,7 @@ class _GradingExamsScreenState extends State<GradingExamsScreen> {
       return;
     }
 
-    const String postUrl = "https://nourelman.runasp.net/api/StudentCources/AddStudentExamAsync";
+    const String postUrl = "https://nour-al-eman.runasp.net/api/StudentCources/AddStudentExamAsync";
 
     try {
       final response = await http.post(

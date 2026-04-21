@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-
-// التعديل هنا: التأكد من المسارات الصحيحة
 import 'student_tests_tab.dart';
 import 'student_attendance_tab.dart';
 import 'edit_student_screen.dart';
@@ -69,14 +67,11 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen>
         final Map<String, dynamic> responseData = jsonDecode(response.body);
         setState(() {
           var rawData = responseData['data'];
-
-          // الحل هنا: لو السيرفر بعت قائمة [ ] ناخد أول عنصر، لو بعت كائن { } ناخده هو
           if (rawData is List && rawData.isNotEmpty) {
             studentData = rawData[0];
           } else if (rawData is Map<String, dynamic>) {
             studentData = rawData;
           }
-
           isLoadingInfo = false;
         });
       }
@@ -175,37 +170,29 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen>
         age = "---";
       }
     }
-
-    // تجميع مواعيد الحلقة بشكل دقيق
     String sessionTimes = "---";
 
     if (studentData != null && studentData!['group'] != null) {
       final group = studentData!['group'];
-
-      // الوصول لمصفوفة الجلسات (المواعيد)
       final List? sessions = group['groupSessions'];
-
       if (sessions != null && sessions.isNotEmpty) {
-        // تحويل كل جلسة لنص (يوم وساعة) وجمعهم مع بعض
         sessionTimes = sessions.map((s) {
           String dayName = _getDayName(s['day'] ?? 0);
           String hour = s['hour'] ?? "";
           return "$dayName ($hour)";
         }).join(" - ");
       } else {
-        // لو مفيش جلسات، جرب الحقول النصية القديمة كـ Backup
         final String d = group['days']?.toString() ?? "";
         final String t = group['time']?.toString() ?? "";
         if (d.isNotEmpty) sessionTimes = "$d ($t)";
       }
     } else {
-      sessionTimes = "غير محدد"; // لو الـ group نفسه نال
+      sessionTimes = "غير محدد";
     }
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), // تصغير البادينج الخارجي
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Column(
         children: [
-          // الكارت الأول: بيانات الطالب
           _infoCard(
             title: "بيانات الطالب",
             children: [
@@ -224,9 +211,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen>
             ],
           ),
 
-          const SizedBox(height: 12), // تصغير المسافة بين الكارتين
-
-          // الكارت الثاني: المدرسة
+          const SizedBox(height: 12),
           _infoCard(
             title: "المدرسة",
             children: [
@@ -254,7 +239,6 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen>
     }
   }
 
-  // دالة لحساب العمر من تاريخ الميلاد
   String _calculateAge(String? birthDateStr) {
     if (birthDateStr == null) return "---";
     try {
@@ -270,7 +254,6 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen>
     }
   }
 
-  // دالة لتنسيق مواعيد الحلقة
   String _formatSessions(List<dynamic>? sessions) {
     if (sessions == null || sessions.isEmpty) return "---";
     return sessions.map((s) => "${s['day']} (${s['hour']})").join(" - ");
@@ -314,14 +297,14 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen>
 
   Widget _infoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3), // قللت الـ 6 لـ 3 عشان الصفوف تقرب من بعض
+      padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start, // عشان لو النص طويل ينزل صح
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
               style: const TextStyle(
-                  color: Colors.grey, fontSize: 12, fontFamily: 'Almarai')), // صغرت الخط من 13 لـ 12
+                  color: Colors.grey, fontSize: 12, fontFamily: 'Almarai')),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

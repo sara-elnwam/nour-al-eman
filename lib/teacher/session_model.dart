@@ -1,10 +1,8 @@
 import 'dart:convert';
 
-// 1. دالة التحويل لشاشة المواعيد
 List<SessionRecord> sessionRecordFromJson(String str) =>
     List<SessionRecord>.from(json.decode(str).map((x) => SessionRecord.fromJson(x)));
 
-// 2. موديل جلب المجموعات
 class GroupData {
   String? levelName;
   int? levelId;
@@ -45,7 +43,6 @@ class GroupData {
   }
 }
 
-// 3. موديل الطالب (تم التحديث ليكون أكثر مرونة)
 class Student {
   final int id;
   final String name;
@@ -59,11 +56,8 @@ class Student {
 
   factory Student.fromJson(Map<String, dynamic> json) {
     return Student(
-      // يتحقق من id أو studentId
       id: json["id"] ?? json["studentId"] ?? 0,
-      // يتحقق من name أو studentName
       name: json["name"] ?? json["studentName"] ?? "اسم غير معروف",
-      // يتحقق من الحالة سواء كانت Boolean أو String
       status: (json["active"] == true || json["status"] == "Active")
           ? "نشط"
           : "غير نشط",
@@ -71,7 +65,6 @@ class Student {
   }
 }
 
-// 4. باقي موديلات السجلات
 class SessionRecord {
   int? id;
   Level? level;

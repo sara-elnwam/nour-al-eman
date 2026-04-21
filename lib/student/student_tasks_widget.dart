@@ -14,27 +14,18 @@ class StudentTasksWidget extends StatelessWidget {
       return const Center(child: CircularProgressIndicator(color: Color(0xFF07427C)));
     }
 
-    // فصل المهام: اللي الطالب لسه ما أجابش عليها
     final unansweredTasks = tasksList.where((item) {
       return item.studentExams == null || item.studentExams!.isEmpty;
     }).toList();
-
-    // المهام اللي أجاب عليها
     final answeredTasks = tasksList.where((item) {
       return item.studentExams != null && item.studentExams!.isNotEmpty;
     }).toList();
-
-    // لو مفيش tasks خالص
     if (tasksList.isEmpty) {
       return _buildEmptyState("لا توجد أعمال حالياً");
     }
-
-    // لو كل المهام أجاب عليها (مفيش سؤال جديد)
     if (unansweredTasks.isEmpty) {
       return _buildAllAnsweredState(answeredTasks);
     }
-
-    // عرض المهام اللي لسه ما أجابش عليها فقط
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: unansweredTasks.length,
@@ -44,8 +35,6 @@ class StudentTasksWidget extends StatelessWidget {
       },
     );
   }
-
-  // كارت المهمة العادية (لسه ما أجابش)
   Widget _buildTaskCard(Datum item) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -85,7 +74,7 @@ class StudentTasksWidget extends StatelessWidget {
           IconButton(
             onPressed: () async {
               if (item.url != null) {
-                final fullUrl = "https://nourelman.runasp.net${item.url}";
+                final fullUrl = "https://nour-al-eman.runasp.net${item.url}";
                 if (await canLaunchUrl(Uri.parse(fullUrl))) {
                   await launchUrl(Uri.parse(fullUrl));
                 }
@@ -98,13 +87,11 @@ class StudentTasksWidget extends StatelessWidget {
     );
   }
 
-  // شاشة "أجبت على كل الأسئلة - انتظر السؤال القادم"
   Widget _buildAllAnsweredState(List<Datum> answeredTasks) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // بانر التهنئة
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
@@ -122,7 +109,7 @@ class StudentTasksWidget extends StatelessWidget {
                 const Icon(Icons.check_circle_outline, color: Colors.white, size: 48),
                 const SizedBox(height: 12),
                 const Text(
-                  "لقد أجبت على سؤال هذا الأسبوع بنجاح! 🎉",
+                  "لقد أجبت على سؤال هذا الأسبوع بنجاح! ",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white,
@@ -144,8 +131,6 @@ class StudentTasksWidget extends StatelessWidget {
               ],
             ),
           ),
-
-          // عرض نتائج الأسئلة السابقة
           if (answeredTasks.isNotEmpty) ...[
             const Align(
               alignment: Alignment.centerRight,
@@ -201,7 +186,6 @@ class StudentTasksWidget extends StatelessWidget {
     );
   }
 
-  // شاشة فارغة
   Widget _buildEmptyState(String message) {
     return Center(
       child: Column(
@@ -231,8 +215,12 @@ class StudentTasksWidget extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold, fontFamily: 'Almarai'),
+        style: TextStyle(color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Almarai'),
       ),
     );
   }
 }
+  

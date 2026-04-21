@@ -34,7 +34,6 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
     return null;
   }
 
-  // ✅ تحويل أي صيغة تاريخ لـ "yyyy-MM-dd" للمقارنة
   String? _toNormalizedDate(String? dateStr) {
     final parsed = _parseServerDate(dateStr);
     if (parsed == null) return null;
@@ -52,9 +51,6 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
         _showError("لم يتم العثور على بيانات المستخدم");
         return;
       }
-
-      // ── الخطوة 1: جيب كل السجلات المحلية (من كل الـ keys) ──
-      // كل بصمة تظهر لوحدها - مش بنعمل merge بالتاريخ
       final allKeys = prefs.getKeys();
       final attendanceKeys = allKeys.where((k) => k.startsWith('local_attendance')).toList();
       final possibleKeys = {'local_attendance_$userId', ...attendanceKeys};
@@ -89,12 +85,11 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
         }
       }
 
-      // ── الخطوة 2: جيب السيرفر وأضف اللي مش موجود محلياً ──
       try {
         final prefsT = await SharedPreferences.getInstance();
         final String tokenT = prefsT.getString('user_token') ?? '';
         final urlById =
-            "https://nourelman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=${prefsT.getString('user_guid') ?? ''}";
+            "https://nour-al-eman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=${prefsT.getString('user_guid') ?? ''}";
         final responseById = await http.get(
           Uri.parse(urlById),
           headers: {
@@ -124,7 +119,6 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
           }
         }
       } catch (_) {
-        // السيرفر مش متاح - السجلات المحلية كافية
       }
 
       _processData(allRecords);
@@ -157,13 +151,11 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
       if (dateB == null) return -1;
       final dateCmp = dateB.compareTo(dateA);
       if (dateCmp != 0) return dateCmp;
-      // نفس اليوم → رتب بوقت الحضور (الأحدث أول)
       final inA = a.checkInTime ?? '';
       final inB = b.checkInTime ?? '';
       return inB.compareTo(inA);
     });
 
-    // ✅ كل record يظهر على حدة - كل بصمة في سطر لوحده
     for (var entry in validData) {
       DateTime date = _parseServerDate(entry.date)!;
       String monthYear = DateFormat('MMMM yyyy', 'ar').format(date);

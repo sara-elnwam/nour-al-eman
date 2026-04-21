@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import 'dart:ui' as ui;
 import 'package:shared_preferences/shared_preferences.dart';
 
-// --- Models ---
 class AttendanceRecord {
   String? date;
   String? checkInTime;
@@ -36,8 +35,6 @@ class AttendanceRecord {
         checkType: json['checkType'],
       );
 }
-
-// --- Screen ---
 class SpecificEmployeeAttendanceScreen extends StatefulWidget {
   final String employeeId;
   final String employeeName;
@@ -90,7 +87,6 @@ class _SpecificEmployeeAttendanceScreenState
     try {
       List<AttendanceRecord> allRecords = [];
 
-      // ── 1. جيب من السيرفر ──
       try {
         final url =
             'https://nour-al-eman.runasp.net/api/Locations/GetAll-employee-attendance-ByEmpId?EmpId=${widget.employeeId}';
@@ -113,9 +109,6 @@ class _SpecificEmployeeAttendanceScreenState
       } catch (e) {
         debugPrint("Server fetch error: $e");
       }
-
-      // ── 2. جيب السجلات المحلية ──
-      // ✅ مهم: السجلات المحلية بتبقى أدق لأنها بتحفظ كل بصمة لوحدها
       try {
         final prefs = await SharedPreferences.getInstance();
         final localKey = 'local_attendance_${widget.employeeId}';
@@ -149,11 +142,8 @@ class _SpecificEmployeeAttendanceScreenState
   void _processData(List<AttendanceRecord> rawData) {
     final validData =
     rawData.where((r) => _parseDate(r.date) != null).toList();
-    // رتب تنازلياً
     validData.sort((a, b) =>
         _parseDate(b.date)!.compareTo(_parseDate(a.date)!));
-
-    // ✅ كل record يظهر لوحده - مش بنحذف التكرار
     Map<String, List<AttendanceRecord>> groups = {};
     for (var entry in validData) {
       final date = _parseDate(entry.date)!;

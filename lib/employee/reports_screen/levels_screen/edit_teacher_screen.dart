@@ -31,9 +31,7 @@ class _EditTeacherScreenState extends State<EditTeacherScreen> {
   @override
   void initState() {
     super.initState();
-    // استخراج البيانات مع التأكد من الهيكل القادم من الـ API
     var data = widget.staffData['data'] ?? widget.staffData;
-
     _nameController = TextEditingController(text: data['name']?.toString() ?? "");
     _phoneController = TextEditingController(text: data['phone']?.toString() ?? "");
     _ssnController = TextEditingController(text: data['ssn']?.toString() ?? "");
@@ -44,14 +42,11 @@ class _EditTeacherScreenState extends State<EditTeacherScreen> {
     _fetchLocations();
   }
   String _formatDate(dynamic date) {
-    // إذا كان التاريخ نل أو فارغ أو يحتوي على أصفار (غير منطقي)
     if (date == null ||
         date.toString().isEmpty ||
         date.toString().startsWith("0001")) {
-      // إرجاع تاريخ النهاردة بتنسيق YYYY-MM-DD
       return DateFormat('yyyy-MM-dd').format(DateTime.now());
     }
-
     String d = date.toString();
     return d.contains('T') ? d.split('T')[0] : d;
   }
@@ -69,25 +64,19 @@ class _EditTeacherScreenState extends State<EditTeacherScreen> {
             _locations = decodedData['data'];
           }
           _isLoadingLocations = false;
-          // التحقق من أن locId ما زال موجوداً في القائمة
           bool exists = _locations.any((loc) => loc['id'].toString() == _selectedLocId);
           if (!exists) _selectedLocId = null;
         });
       }
     } catch (e) {
-      debugPrint("Error fetching locations: $e");
       setState(() => _isLoadingLocations = false);
     }
   }
   Future<void> _saveData() async {
     setState(() => _isSaving = true);
     try {
-      // 1. استخراج الـ ID بدقة
       final data = widget.staffData['data'] ?? widget.staffData;
       final teacherId = data['id'];
-
-      print("Editing Teacher ID: $teacherId"); // تأكد ان الرقم ده 1297
-
       final Map<String, dynamic> updateData = {
         "id": teacherId,
         "name": _nameController.text,
@@ -95,16 +84,12 @@ class _EditTeacherScreenState extends State<EditTeacherScreen> {
         "ssn": _ssnController.text,
         "locId": int.tryParse(_selectedLocId!) ?? 0,
         "educationDegree": _eduController.text,
-        // التأكد من وجود قيمة في الـ controller وإلا إرسال تاريخ اليوم بتنسيق السيرفر
         "joinDate": _joinDateController.text.isNotEmpty
             ? "${_joinDateController.text}T00:00:00.000Z"
             : "${DateFormat('yyyy-MM-dd').format(DateTime.now())}T00:00:00.000Z",
         "employeeTypeId": "1",
         "type": "1"
       };
-
-      print("Sending Payload to Server: ${json.encode(updateData)}");
-
       final response = await http.put(
         Uri.parse('https://nour-al-eman.runasp.net/api/Employee/Update')
         ,
@@ -115,17 +100,11 @@ class _EditTeacherScreenState extends State<EditTeacherScreen> {
         body: json.encode(updateData),
       );
 
-      print("Server Status Code: ${response.statusCode}");
-      print("Server Response Body: ${response.body}");
-
       if (response.statusCode == 200 || response.statusCode == 204) {
-        // نجح الحفظ
         Navigator.pop(context, true);
       } else {
-        print("Failed to update. Check if the ID or fields are correct.");
       }
     } catch (e) {
-      print("Error during save: $e");
     } finally {
       setState(() => _isSaving = false);
     }

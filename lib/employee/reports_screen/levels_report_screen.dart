@@ -56,7 +56,6 @@ class _LevelsReportScreenState extends State<LevelsReportScreen> {
             const SizedBox(height: 30),
             Center(child: _buildSubmitButton()),
             const SizedBox(height: 20),
-            // تم حذف الـ Divider والنص من هنا
           ],
         ),
       ),

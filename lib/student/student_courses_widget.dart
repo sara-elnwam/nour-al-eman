@@ -1,124 +1,153 @@
 import 'dart:io';
-import 'dart:isolate';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
-
-@pragma('vm:entry-point')
-void downloadCallback(String id, int status, int progress) {
-  final SendPort? send = IsolateNameServer.lookupPortByName('downloader_send_port');
-  send?.send([id, status, progress]);
-}
+import 'package:path/path.dart' as p;
 
 class StudentCoursesWidget extends StatefulWidget {
   final List<dynamic> coursesList;
   final bool isLoading;
 
-  const StudentCoursesWidget({super.key, required this.coursesList, required this.isLoading});
+  const StudentCoursesWidget(
+      {super.key, required this.coursesList, required this.isLoading});
 
   @override
   State<StudentCoursesWidget> createState() => _StudentCoursesWidgetState();
 }
 
 class _StudentCoursesWidgetState extends State<StudentCoursesWidget> {
-  final ReceivePort _port = ReceivePort();
+  static const String _baseUrl = "https://nour-al-eman.runasp.net";
 
   @override
   void initState() {
     super.initState();
-    IsolateNameServer.registerPortWithName(_port.sendPort, 'downloader_send_port');
-    _port.listen((dynamic data) {
-      if (mounted) setState(() {});
-    });
-    FlutterDownloader.registerCallback(downloadCallback);
   }
 
-  @override
-  void dispose() {
-    IsolateNameServer.removePortNameMapping('downloader_send_port');
-    super.dispose();
+  String _getExtension(String? url) {
+    if (url == null || url.isEmpty) return 'pdf';
+    final ext = p.extension(url).replaceFirst('.', '').toLowerCase();
+    return ext.isNotEmpty ? ext : 'pdf';
+  }
+
+  IconData _iconForExt(String ext) {
+    switch (ext) {
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'webp':
+        return Icons.image_outlined;
+      case 'mp4':
+      case 'mov':
+      case 'avi':
+        return Icons.video_file_outlined;
+      case 'mp3':
+      case 'wav':
+        return Icons.audio_file_outlined;
+      case 'pdf':
+        return Icons.picture_as_pdf_outlined;
+      default:
+        return Icons.insert_drive_file_outlined;
+    }
   }
 
   Future<void> _downloadFile(dynamic course) async {
-    // 1. طلب الأذونات (دعم أندرويد 13 فما فوق يحتاج Permission.notification)
-    await [Permission.storage, Permission.notification].request();
-
+    final String? elementId = course['id']?.toString();
+    if (elementId == null || elementId == '0') {
+      _showSnackBar("بيانات الملف غير مكتملة");
+      return;
+    }
+    debugPrint(" [DOWNLOAD START] جاري معالجة المهمة رقم: $elementId");
+    if (Platform.isAndroid) {
+      await Permission.notification.request();
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       final String? token = prefs.getString('user_token');
 
-      if (token == null || token == "no_token") {
-        _showSnackBar("يجب تسجيل الدخول أولاً");
-        return;
-      }
+      final String downloadUrl = "$_baseUrl/api/StudentCources/DownloadLatest?id=$elementId";
 
-      // 2. سحب البيانات والـ IDs
-      final String levelId = course['levelId']?.toString() ?? "";
-      final String typeId = course['typeId']?.toString() ?? "";
-      final String courseId = course['id']?.toString() ?? "";
-
-      // 3. بناء الرابط مع Timestamp لمنع الـ Caching
-      // إضافة DateTime.now يجعل السيرفر يعامل كل ضغطة تحميل كأنها طلب جديد تماماً
-      final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      final String finalUrl = "https://nour-al-eman.runasp.net/api/StudentCources/DownloadLatest"
-          "?levelId=$levelId&typeId=$typeId&courseId=$courseId&v=$timestamp";
-
-      // 4. تحديد مسار الحفظ بشكل آمن
+      final String courseName = (course['name'] ?? 'file')
+          .toString()
+          .replaceAll(RegExp(r'[^\u0600-\u06FF\w\s]+'), '_')
+          .replaceAll(' ', '_');
+      final String fileName = "${courseName}_$elementId.png";
       String? savedPath;
       if (Platform.isAndroid) {
-        // محاولة الوصول لمجلد الـ Downloads العام
-        final directory = Directory('/storage/emulated/0/Download');
-        if (await directory.exists()) {
-          savedPath = directory.path;
-        } else {
-          // حل احتياطي إذا لم يتوفر المسار أعلاه
-          final externalDir = await getExternalStorageDirectory();
-          savedPath = externalDir?.path;
+        savedPath = "/storage/emulated/0/Download";
+        final dir = Directory(savedPath);
+        if (!await dir.exists()) {
+          final extDir = await getExternalStorageDirectory();
+          savedPath = extDir?.path;
         }
       } else {
-        final downloadDir = await getApplicationDocumentsDirectory();
-        savedPath = downloadDir.path;
+        savedPath = (await getApplicationDocumentsDirectory()).path;
       }
 
       if (savedPath == null) {
-        _showSnackBar("تعذر العثور على مسار لحفظ الملف");
+        _showSnackBar("تعذر تحديد مسار الحفظ");
         return;
       }
-
-      // 5. اسم الملف فريد
-      String fileName = "${course['name'] ?? 'file'}_$courseId.pdf";
-
-      // بدء التحميل
-      await FlutterDownloader.enqueue(
-        url: finalUrl,
+      final taskId = await FlutterDownloader.enqueue(
+        url: downloadUrl,
         savedDir: savedPath,
         fileName: fileName,
         headers: {
-          "Authorization": "Bearer $token",
-          "Accept": "application/pdf",
+          if (token != null && token != 'no_token') "Authorization": "Bearer $token",
+          "Accept": "*/*",
         },
         showNotification: true,
         openFileFromNotification: true,
         saveInPublicStorage: true,
       );
-
-      _showSnackBar("بدأ تحميل ${course['name']}...", isError: false);
+      if (taskId != null) {
+        _showSnackBar("بدأ تحميل: ${course['name']}", isError: false);
+      }
     } catch (e) {
-      _showSnackBar("فشل في بدء التحميل");
-      debugPrint("Download Error: $e");
+      debugPrint(" Error: $e");
+      _showSnackBar("حدث خطأ أثناء محاولة التحميل");
     }
   }
 
   void _showSnackBar(String message, {bool isError = true}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'Almarai')),
-        backgroundColor: isError ? Colors.red : Colors.green,
-        behavior: SnackBarBehavior.floating,
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontFamily: 'Almarai')),
+      backgroundColor: isError ? Colors.red : Colors.green,
+      behavior: SnackBarBehavior.floating,
+    ));
+  }
+
+  Widget _buildDownloadButton(dynamic course) {
+    return InkWell(
+      onTap: () => _downloadFile(course),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _iconForExt(_getExtension(course['url']?.toString())),
+              color: const Color(0xFFC66422),
+              size: 22,
+            ),
+            const SizedBox(width: 4),
+            const Text(
+              "تحميل",
+              style: TextStyle(
+                color: Color(0xFFC66422),
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Almarai',
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -126,11 +155,14 @@ class _StudentCoursesWidgetState extends State<StudentCoursesWidget> {
   @override
   Widget build(BuildContext context) {
     if (widget.isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFF07427C)));
+      return const Center(
+          child: CircularProgressIndicator(color: Color(0xFF07427C)));
     }
 
     if (widget.coursesList.isEmpty) {
-      return const Center(child: Text("لا توجد ملفات متاحة حالياً", style: TextStyle(fontFamily: 'Almarai')));
+      return const Center(
+          child: Text("لا توجد ملفات متاحة حالياً",
+              style: TextStyle(fontFamily: 'Almarai')));
     }
 
     return ListView.builder(
@@ -138,6 +170,7 @@ class _StudentCoursesWidgetState extends State<StudentCoursesWidget> {
       itemCount: widget.coursesList.length,
       itemBuilder: (context, index) {
         final course = widget.coursesList[index];
+        final String ext = _getExtension(course['url']?.toString());
 
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
@@ -147,44 +180,38 @@ class _StudentCoursesWidgetState extends State<StudentCoursesWidget> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0xFFE2E8F0)),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 2)),
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.02),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2)),
             ],
           ),
           child: Row(
             children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                margin: const EdgeInsets.only(left: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFC66422).withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(_iconForExt(ext),
+                    color: const Color(0xFFC66422), size: 26),
+              ),
               Expanded(
-                flex: 5,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildInfoRow("الإسم", course['name'] ?? "غير متوفر"),
-                    const SizedBox(height: 8),
-                    _buildInfoRow("التفاصيل", course['description'] ?? "لا يوجد وصف"),
+                    const SizedBox(height: 6),
+                    _buildInfoRow(
+                        "التفاصيل", course['description'] ?? "لا يوجد وصف"),
+
                   ],
                 ),
               ),
-              const Spacer(),
-              InkWell(
-                onTap: () => _downloadFile(course),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.download_outlined, color: Color(0xFFC66422), size: 24),
-                      const SizedBox(width: 4),
-                      const Text(
-                        "تحميل",
-                        style: TextStyle(
-                          color: Color(0xFFC66422),
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Almarai',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              const SizedBox(width: 8),
+              _buildDownloadButton(course),
             ],
           ),
         );
@@ -197,8 +224,18 @@ class _StudentCoursesWidgetState extends State<StudentCoursesWidget> {
       alignment: WrapAlignment.start,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Text("$label: ", style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500, fontSize: 14, fontFamily: 'Almarai')),
-        Text(value, style: const TextStyle(color: Color(0xFF2E3542), fontWeight: FontWeight.bold, fontSize: 15, fontFamily: 'Almarai')),
+        Text("$label: ",
+            style: const TextStyle(
+                color: Colors.grey,
+                fontWeight: FontWeight.w500,
+                fontSize: 13,
+                fontFamily: 'Almarai')),
+        Text(value,
+            style: const TextStyle(
+                color: Color(0xFF2E3542),
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                fontFamily: 'Almarai')),
       ],
     );
   }

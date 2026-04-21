@@ -10,8 +10,6 @@ final Color _spOrange  = const Color(0xFFC66422);
 final Color _spDark    = const Color(0xFF2E3542);
 
 const String _apiBase = 'https://nour-al-eman.runasp.net';
-
-// شهور عربية
 const List<String> _arabicMonths = [
   'يناير','فبراير','مارس','أبريل','مايو','يونيو',
   'يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر',
@@ -33,8 +31,6 @@ class _StudentPaymentScreenState extends State<StudentPaymentScreen> {
   String _searchQuery     = '';
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchCtrl  = TextEditingController();
-
-  // ── static table width ──────────────────────────────────────
   static const double _tableWidth = 580.0;
   final ScrollController _hScroll = ScrollController();
 
@@ -57,8 +53,6 @@ class _StudentPaymentScreenState extends State<StudentPaymentScreen> {
     await Future.wait([_fetchPayments(), _fetchStudents()]);
   }
 
-  // ── API ──────────────────────────────────────────────────────
-
   Future<void> _fetchCurrentUser() async {
     try {
       final prefs  = await SharedPreferences.getInstance();
@@ -70,7 +64,7 @@ class _StudentPaymentScreenState extends State<StudentPaymentScreen> {
         final name = jsonDecode(res.body)['data']?['name'];
         if (name != null && mounted) setState(() => _currentUserName = name);
       }
-    } catch (e) { debugPrint('❌ fetchCurrentUser: $e'); }
+    } catch (e) { debugPrint(' fetchCurrentUser: $e'); }
   }
 
   Future<void> _fetchPayments() async {
@@ -84,7 +78,7 @@ class _StudentPaymentScreenState extends State<StudentPaymentScreen> {
         final list = raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
         if (mounted) setState(() { _payments = list; _applySearch(); });
       }
-    } catch (e) { debugPrint('❌ fetchPayments: $e'); }
+    } catch (e) { debugPrint(' fetchPayments: $e'); }
     finally { if (mounted) setState(() => _isLoading = false); }
   }
 
@@ -97,7 +91,7 @@ class _StudentPaymentScreenState extends State<StudentPaymentScreen> {
         if (mounted) setState(() =>
         _students = raw.map((e) => Map<String, dynamic>.from(e as Map)).toList());
       }
-    } catch (e) { debugPrint('❌ fetchStudents: $e'); }
+    } catch (e) { debugPrint(' fetchStudents: $e'); }
   }
 
   Future<void> _addPayment(int studentId, int month, double value) async {
@@ -121,7 +115,7 @@ class _StudentPaymentScreenState extends State<StudentPaymentScreen> {
       } else {
         if (mounted) _showSnack('فشل الإضافة: ${res.statusCode}', Colors.red);
       }
-    } catch (e) { debugPrint('❌ add: $e'); }
+    } catch (e) { debugPrint(' add: $e'); }
   }
 
   Future<void> _updatePayment(Map<String, dynamic> item,
@@ -146,10 +140,8 @@ class _StudentPaymentScreenState extends State<StudentPaymentScreen> {
       } else {
         if (mounted) _showSnack('فشل التعديل: ${res.statusCode}', Colors.red);
       }
-    } catch (e) { debugPrint('❌ update: $e'); }
+    } catch (e) { debugPrint(' update: $e'); }
   }
-
-  // ── Helpers ──────────────────────────────────────────────────
 
   void _applySearch() {
     final q = _searchQuery.trim().toLowerCase();
@@ -191,7 +183,6 @@ class _StudentPaymentScreenState extends State<StudentPaymentScreen> {
     ));
   }
 
-  // ── Dialogs ──────────────────────────────────────────────────
 
   void _showAddDialog() {
     final valueCtrl = TextEditingController();
@@ -292,8 +283,6 @@ class _StudentPaymentScreenState extends State<StudentPaymentScreen> {
     );
   }
 
-  // ── Dialog widgets ───────────────────────────────────────────
-
   Widget _fieldLabel(String label) => Padding(
     padding: const EdgeInsets.only(bottom: 6),
     child: Align(
@@ -376,7 +365,6 @@ class _StudentPaymentScreenState extends State<StudentPaymentScreen> {
         )),
       ]);
 
-  // ── Table ────────────────────────────────────────────────────
 
   Widget _buildHeader() {
     final s = TextStyle(color: _spDark,
@@ -425,7 +413,6 @@ class _StudentPaymentScreenState extends State<StudentPaymentScreen> {
     );
   }
 
-  // ── Build ────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -437,7 +424,6 @@ class _StudentPaymentScreenState extends State<StudentPaymentScreen> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
           child: Column(
             children: [
-              // ── شريط البحث ──────────────────────────────────
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: TextField(
@@ -475,7 +461,6 @@ class _StudentPaymentScreenState extends State<StudentPaymentScreen> {
                 ),
               ),
 
-              // ── الجدول ──────────────────────────────────────
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
@@ -535,8 +520,6 @@ class _StudentPaymentScreenState extends State<StudentPaymentScreen> {
             ],
           ),
         ),
-
-        // ── زر الإضافة ──────────────────────────────────────────
         Positioned(
           bottom: 88, left: 24,
           child: SizedBox(
@@ -558,7 +541,6 @@ class _StudentPaymentScreenState extends State<StudentPaymentScreen> {
     );
   }
 }
-// ── Searchable Student Picker ────────────────────────────────
 class _SearchableStudentPicker extends StatefulWidget {
   final List<Map<String, dynamic>> students;
   final int?                       value;
@@ -630,7 +612,6 @@ class _SearchableStudentPickerState extends State<_SearchableStudentPicker> {
 }
 
 
-// ── Student Search BottomSheet ───────────────────────────────
 class _StudentSearchSheet extends StatefulWidget {
   final List<Map<String, dynamic>> students;
   const _StudentSearchSheet({required this.students});
@@ -675,14 +656,12 @@ class _StudentSearchSheetState extends State<_StudentSearchSheet> {
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        // DraggableScrollableSheet بديل احترافي
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // ── handle ──
             Container(
               margin: const EdgeInsets.only(top: 10, bottom: 4),
               width: 40, height: 4,
@@ -691,7 +670,6 @@ class _StudentSearchSheetState extends State<_StudentSearchSheet> {
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
-            // ── عنوان ──
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: Row(
@@ -715,7 +693,6 @@ class _StudentSearchSheetState extends State<_StudentSearchSheet> {
                 ],
               ),
             ),
-            // ── بحث ──
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               child: TextField(

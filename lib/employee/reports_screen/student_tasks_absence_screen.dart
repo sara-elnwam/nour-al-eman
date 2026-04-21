@@ -103,8 +103,6 @@ class _StudentTasksAbsenceScreenState extends State<StudentTasksAbsenceScreen> {
     );
   }
 
-  // --- الدوال التي كانت ناقصة وتسببت في الخطأ ---
-
   Widget _buildLabel(String text) => Padding(
     padding: const EdgeInsets.only(bottom: 8),
     child: Text(text, style: const TextStyle(fontFamily: 'Almarai', fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF475569))),
@@ -211,8 +209,6 @@ class _StudentTasksAbsenceScreenState extends State<StudentTasksAbsenceScreen> {
     child: const Text("إرسال الطلب", style: TextStyle(fontFamily: 'Almarai', color: Colors.white, fontWeight: FontWeight.bold)),
   ));
 }
-
-// --- الموديلات ---
 class LevelModel {
   final int id; final String name;
   LevelModel({required this.id, required this.name});

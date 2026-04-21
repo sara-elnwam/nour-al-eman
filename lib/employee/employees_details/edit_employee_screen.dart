@@ -17,7 +17,7 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
   bool _isLoading = true;
   bool _isSaving = false;
 
-  // Controllers
+
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _nationalIdController = TextEditingController();
@@ -25,15 +25,10 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
   final TextEditingController _joinDateController = TextEditingController();
 
   PlatformFile? _pickedFile;
-
-  // المواقع (ديناميكية من API)
   List<dynamic> _locationsList = [];
   bool _isLoadingLocations = true;
-
-  // المسميات الوظيفية (ديناميكية من API)
   List<dynamic> _jobTitlesList = [];
   bool _isLoadingJobTitles = true;
-
   int? _selectedLocationId;
   int? _selectedJobTypeId;
 
@@ -56,21 +51,17 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
   }
 
   Future<void> _fetchLocations() async {
-    // جرب الـ endpoints المحتملة بالترتيب
     final endpoints = [
       'https://nour-al-eman.runasp.net/api/Locations/GetAll',
       'https://nour-al-eman.runasp.net/api/Location/GetAll',
     ];
 
     for (final url in endpoints) {
-      print("DEBUG: جاري تجربة $url");
       try {
         final response = await http.get(Uri.parse(url));
-        print("DEBUG: status = ${response.statusCode} | body = ${response.body}");
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
           final list = data is List ? data : (data['data'] ?? []);
-          print("DEBUG: نجح الـ endpoint: $url | عدد المواقع = ${list.length}");
           setState(() {
             _locationsList = list;
             _isLoadingLocations = false;
@@ -78,11 +69,9 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
           return;
         }
       } catch (e) {
-        print("DEBUG: خطأ في $url => $e");
       }
     }
 
-    print("DEBUG: كل الـ endpoints فشلت!");
     setState(() => _isLoadingLocations = false);
   }
 
@@ -102,7 +91,6 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
         setState(() => _isLoadingJobTitles = false);
       }
     } catch (e) {
-      print("DEBUG: خطأ في جلب المسميات الوظيفية = $e");
       setState(() => _isLoadingJobTitles = false);
     }
   }
@@ -135,24 +123,19 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
           _nameController.text = data['name']?.toString() ?? '';
           _phoneController.text = data['phone']?.toString() ?? '';
           _nationalIdController.text = (data['ssn'] ?? '').toString();
-
           String education = data['educationDegree']?.toString() ?? '';
           _educationController.text = (education.toLowerCase() == "string") ? "" : education;
-
           if (data['joinDate'] != null && data['joinDate'].toString().startsWith('20')) {
             _joinDateController.text = data['joinDate'].split('T')[0];
           } else {
             _joinDateController.text = DateTime.now().toIso8601String().split('T')[0];
           }
-
           _selectedLocationId = data['locId'];
-
           if (data['employeeTypeId'] != null) {
             _selectedJobTypeId = int.tryParse(data['employeeTypeId'].toString());
           } else if (data['employeeType'] != null) {
             _selectedJobTypeId = data['employeeType']['id'];
           }
-
           _isLoading = false;
         });
       } else {
@@ -180,21 +163,18 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
       if (_joinDateController.text.isEmpty || _joinDateController.text.startsWith('0001')) {
         finalJoinDate = DateTime.now().toIso8601String().split('.')[0];
       } else {
-        // إضافة الوقت للتاريخ المختار ليقبله السيرفر
         finalJoinDate = "${_joinDateController.text}T00:00:00";
       }
 
       final Map<String, dynamic> payload = {
-        "id": widget.empId, //
-        "name": _nameController.text.trim(), //
-        "ssn": _nationalIdController.text.trim(), //
-        "phone": _phoneController.text.trim(), //
-        "educationDegree": _educationController.text.trim(), //
+        "id": widget.empId,
+        "name": _nameController.text.trim(),
+        "ssn": _nationalIdController.text.trim(),
+        "phone": _phoneController.text.trim(),
+        "educationDegree": _educationController.text.trim(),
         "joinDate": finalJoinDate,
         "locId": _selectedLocationId,
-
-        "employeeTypeId": (_selectedJobTypeId ?? 2).toString(), //
-
+        "employeeTypeId": (_selectedJobTypeId ?? 2).toString(),
         "groups": [],
         "courses": []
       };

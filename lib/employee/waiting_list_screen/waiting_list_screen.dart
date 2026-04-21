@@ -49,10 +49,7 @@ class WaitingListScreen extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(15),
-          // 1. في أول الملف تأكدي من عمل import
-
-// 2. داخل دالة _buildWaitingCard وتحديداً الـ onTap:
-          onTap: () {
+        onTap: () {
     if (title == 'طلبات تسجيل الطلاب') {
     Navigator.push(context, MaterialPageRoute(builder: (context) => const StudentWaitingListScreen()));
     } else if (title == 'طلبات تسجيل المعلمين') {

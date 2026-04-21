@@ -2,14 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
-// --- التعديل هنا ---
-// إذا كان الملفان في نفس المجلد استخدم هذا السطر:
 import 'curriculum_model.dart';
 
-// إذا كان ملف الموديل في مجلد مختلف (مثلاً مجلد models)، استخدم المسار الكامل:
-// import 'package:project1/models/curriculum_model.dart';
-// ------------------
+
 
 class CurriculumScreen extends StatelessWidget {
   final Color primaryBlue = const Color(0xFF1976D2);
@@ -25,7 +20,6 @@ class CurriculumScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // بدون Scaffold أو AppBar — التحكم في الـ AppBar عند الـ TeacherHomeScreen
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Column(

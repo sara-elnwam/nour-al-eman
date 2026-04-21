@@ -10,14 +10,12 @@ import 'sessions_screen.dart';
 import 'groups_screen.dart';
 import 'main_attendance_widget.dart';
 
-// --- الألوان الثابتة ---
 final Color primaryOrange = Color(0xFFC66422);
 final Color darkBlue = Color(0xFF2E3542);
 const Color kActiveBlue = Color(0xFF1976D2);
 const Color kLabelGrey = Color(0xFF718096);
 const Color kBorderColor = Color(0xFFE2E8F0);
 
-// --- موديل مواعيد الدرس ---
 List<SessionRecord> sessionRecordFromJson(String str) =>
     List<SessionRecord>.from(json.decode(str).map((x) => SessionRecord.fromJson(x)));
 
@@ -58,14 +56,13 @@ class GroupSession {
 }
 
 class TeacherHomeScreen extends StatefulWidget {
-  final Map<String, dynamic>? loginData; // ← أضف ده
+  final Map<String, dynamic>? loginData;
   TeacherHomeScreen({this.loginData});
   @override
   _TeacherHomeScreenState createState() => _TeacherHomeScreenState();
 }
 
 class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
-  // جعلنا "الرئيسية" هي الصفحة الافتراضية عند الفتح
   String _currentTitle = "الرئيسية";
   bool _isLoading = true;
   TeacherData? teacherData;
@@ -78,7 +75,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   }
   Future<void> _loadInitialData() async {
     setState(() => _isLoading = true);
-    await _fetchTeacherProfile(); // دايماً جيبي البروفايل في البداية
+    await _fetchTeacherProfile();
     if (_currentTitle == "مواعيد الدرس") {
       await _fetchSessions();
     }
@@ -97,10 +94,9 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
 
       debugPrint("🔑 numericId=$numericId | guid=$guid");
 
-      // لو عندنا numeric id استخدمه
       if (numericId != null && numericId.isNotEmpty && numericId != "null" && numericId != "0") {
         final response = await http.get(
-            Uri.parse('https://nourelman.runasp.net/api/Employee/GetById?id=$numericId')
+            Uri.parse('https://nour-al-eman.runasp.net/api/Employee/GetById?id=$numericId')
         );
         debugPrint("📥 Status: ${response.statusCode} | Body: ${response.body}");
         if (response.statusCode == 200) {
@@ -111,13 +107,12 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
           if (locId != null) {
             final p = await SharedPreferences.getInstance();
             await p.setInt('user_loc_id', locId as int);
-            debugPrint("✅ Teacher Saved user_loc_id: $locId");
+            debugPrint(" Teacher Saved user_loc_id: $locId");
           }
         }
       }
-      // لو مفيش numeric id، استخدم بيانات الـ loginData مباشرة
       else if (guid != null && guid.isNotEmpty) {
-        debugPrint("⚠️ No numeric ID, using loginData directly");
+        debugPrint(" No numeric ID, using loginData directly");
         if (mounted) {
           setState(() {
             teacherData = TeacherData(
@@ -133,7 +128,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
         }
       }
     } catch (e) {
-      debugPrint("❌ Error: $e");
+      debugPrint(" Error: $e");
     }
   }
   Future<void> _fetchSessions() async {
@@ -146,7 +141,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
         return;
       }
 
-      final response = await http.get(Uri.parse('https://nourelman.runasp.net/api/Employee/GetSessionRecord?emp_id=$id'));
+      final response = await http.get(Uri.parse('https://nour-al-eman.runasp.net/api/Employee/GetSessionRecord?emp_id=$id'));
       if (response.statusCode == 200) {
         setState(() => _sessions = sessionRecordFromJson(response.body));
       }
@@ -225,7 +220,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
       );
     }
 
-    // تاريخ الالتحاق بأمان
     String joinDateStr = "---";
     if (teacherData!.joinDate != null) {
       final d = teacherData!.joinDate!;
@@ -255,9 +249,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
       ],
     );
   }
-  // --- واجهة مواعيد الدرس ---
   Widget _buildSessionsBody() {
-    // فحص شامل: مفيش sessions أو كل sessions مفيهاش groupSessions
     final bool hasNoData = _sessions.isEmpty ||
         _sessions.every((s) => s.groupSessions == null || s.groupSessions!.isEmpty);
 
@@ -340,13 +332,11 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   static const TextStyle _cellStyle = TextStyle(fontFamily: 'Almarai', color: Color(0xFF2E3542), fontSize: 13);
   static const TextStyle _cellStyleBold = TextStyle(fontFamily: 'Almarai', fontWeight: FontWeight.bold, color: Color(0xFF1976D2), fontSize: 13);
 
-  // --- السايدبار الموحد (نسخة مصححة) ---
   Widget _buildTeacherSidebar(BuildContext context) {
     return Drawer(
       backgroundColor: Colors.white,
       child: Column(
         children: [
-          // لوجو التطبيق في الأعلى
           Container(
             padding: const EdgeInsets.only(top: 50, bottom: 20),
             child: Center(
@@ -357,13 +347,11 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
               ),
             ),
           ),
-
-          // جميع العناصر في قائمة واحدة قابلة للتمرير
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                _buildSidebarItem(Icons.home_outlined, "الرئيسية"), // تأكد أن الاسم يطابق الـ switch case
+                _buildSidebarItem(Icons.home_outlined, "الرئيسية"),
                 _buildSidebarItem(Icons.person_outline, "البيانات الشخصية"),
                 _buildSidebarItem(
                   Icons.fact_check_outlined,
@@ -380,9 +368,9 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
 
           const Divider(height: 1),
           SafeArea(
-            top: false, // مش عايزين مساحة من فوق
+            top: false,
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10.0), // مسافة بسيطة
+              padding: const EdgeInsets.symmetric(vertical: 10.0),
               child: _buildSidebarItem(
                 Icons.logout,
                 "تسجيل الخروج",
@@ -431,15 +419,11 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
           }
 
           if (isPushScreen && screen != null) {
-            // نحفظ الصفحة الحالية ونفتح الصفحة الجديدة
-            // لما المستخدم يرجع، الـ _currentTitle يفضل على الرئيسية مش على البيانات الشخصية
             setState(() => _currentTitle = "الرئيسية");
             Navigator.pop(context);
             Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
             return;
           }
-
-          // نحدث الـ state أولاً قبل إغلاق الدراور — يمنع الـ lag
           if (_currentTitle != title) {
             setState(() => _currentTitle = title);
           }
@@ -476,7 +460,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
               style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, elevation: 0),
               onPressed: () async {
                 final prefs = await SharedPreferences.getInstance();
-                // ✅ احتفظ بسجلات الحضور المحلية - امسح بس بيانات الـ session
                 final allKeys = prefs.getKeys();
                 for (final key in allKeys) {
                   if (!key.startsWith('local_attendance_')) {

@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'dart:ui' as ui;
 
-// تعريفات الألوان والمقاسات
 final Color primaryOrange = Color(0xFFC66422);
 final Color darkBlue = Color(0xFF2E3542);
 final String baseUrl = 'https://nour-al-eman.runasp.net/api';
@@ -50,14 +49,11 @@ class _EditStudentScreenState extends State<EditStudentScreen> {
     phoneController = TextEditingController(text: data?['phone']?.toString() ?? "");
     phone2Controller = TextEditingController(text: data?['phone2']?.toString() ?? "");
     schoolController = TextEditingController(text: data?['governmentSchool']?.toString() ?? "");
-
-
     selectedLocId = widget.initialData?['locId'];
     attendanceType = widget.initialData?['attendanceType'];
     paymentType = widget.initialData?['paymentType'];
     documentType = widget.initialData?['documentType'];
     typeInfamily = widget.initialData?['typeInfamily'];
-    // تحويل النصوص لتواريخ عشان الـ UI
     if (widget.initialData?['birthDate'] != null) {
       birthDate = DateTime.parse(widget.initialData!['birthDate']);
     }
@@ -226,8 +222,6 @@ class _EditStudentScreenState extends State<EditStudentScreen> {
       final String? token = prefs.getString('token');
 
       final String fullUrl = '$baseUrl/Student/Update';
-
-      // تجهيز الداتا بناءً على الـ JSON الفعلي اللي ظهر في الـ Debug عندك
       final Map<String, dynamic> body = {
         "id": widget.studentId,
         "name": nameController.text.trim(),
@@ -237,26 +231,15 @@ class _EditStudentScreenState extends State<EditStudentScreen> {
         "parentJob": parentJobController.text.trim(),
         "governmentSchool": schoolController.text.trim(),
         "attendanceType": attendanceType,
-
-        // تنسيق التاريخ ليكون YYYY-MM-DD عشان السيرفر يقبله صح
         "birthDate": birthDate?.toIso8601String().split('T')[0],
         "joinDate": joinDate?.toIso8601String().split('T')[0],
-
-        // إرسال الـ IDs اللي الليدر قال إنها مبتتبعتش
         "locId": selectedLocId ?? widget.initialData?['locId'],
-        "levelId": widget.initialData?['levelId'], // دي القيمة 2 اللي في الـ JSON بتاعك
-        "groupId": widget.initialData?['groupId'], // دي القيمة 2 اللي في الـ JSON بتاعك
-
+        "levelId": widget.initialData?['levelId'],
+        "groupId": widget.initialData?['groupId'],
         "paymentType": paymentType ?? "لم يتم التحديد بعد",
         "documentType": documentType ?? "لم يتم التحديد بعد",
         "typeInfamily": typeInfamily ?? "لم يتم التحديد بعد",
       };
-
-// السطر ده مهم جداً عشان تراجع الداتا في الـ Console قبل ما تتبعت
-      print("Final Body to Server: ${jsonEncode(body)}");
-
-      // اطبع الـ Body عشان تتأكد إنه مش null
-      debugPrint("🚀 Final Body to Server: ${jsonEncode(body)}");
 
       final response = await http.put(
         Uri.parse(fullUrl),
@@ -273,18 +256,15 @@ class _EditStudentScreenState extends State<EditStudentScreen> {
         );
         Navigator.pop(context, true);
       } else {
-        debugPrint("❌ Server Response Error: ${response.body}");
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("فشل التحديث: ${response.statusCode}"), backgroundColor: Colors.red)
         );
       }
     } catch (e) {
-      debugPrint("⚠️ Exception: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-  // محاولة أخيرة برابط مختلف إذا فشل الأول
   Future<void> _updateWithFallback(String? token, Map<String, dynamic> body) async {
     final String fallbackUrl = '$baseUrl/Students';
     final response = await http.put(

@@ -64,7 +64,6 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
   }
 
   String _getDayName(int day) {
-    // السيرفر بيبدأ من 1 = السبت (مطابق للـ Web)
     const days = {
       1: "السبت", 2: "الأحد", 3: "الإثنين", 4: "الثلاثاء", 5: "الأربعاء", 6: "الخميس", 7: "الجمعة",
     };
@@ -103,7 +102,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
           elevation: 0.5,
           centerTitle: false,
           title: Text(
-            studentData?['name'] ?? widget.studentName, // استخدام الاسم المحدث من السيرفر إذا وجد
+            studentData?['name'] ?? widget.studentName,
             style: const TextStyle(
               color: kTextDark,
               fontSize: 17,
@@ -115,16 +114,15 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> with Single
             IconButton(
               icon: const Icon(Icons.edit_note, color: Color(0xFF1976D2), size: 24),
               onPressed: () {
-                // التعديل هنا: تمرير studentData بالكامل
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => EditStudentScreen(
                       studentId: widget.studentId,
-                      initialData: studentData, // البيانات القادمة من الـ API
+                      initialData: studentData,
                     ),
                   ),
-                ).then((_) => _fetchStudentInfo()); // إعادة جلب البيانات بعد التعديل
+                ).then((_) => _fetchStudentInfo());
               },
             ),
             const SizedBox(width: 8),

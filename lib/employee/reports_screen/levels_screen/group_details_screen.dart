@@ -32,7 +32,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
   String? displayTeacherName;
   int _resolvedTeacherId = 0;
 
-  // ✅ حفظ بيانات المجموعة الكاملة لاستخدامها في التعديل
   Map<String, dynamic> _currentGroupData = {};
 
   final Color kPrimaryBlue = const Color(0xFF07427C);
@@ -41,8 +40,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
 
   List<dynamic> teachersList = [];
   List<dynamic> locationsList = [];
-
-  // متغيرات التعديل
   int? selectedTeacherId;
   int? selectedLocationId;
   List<int> selectedDays = [];
@@ -65,63 +62,45 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
-
-      // ✅ Call 1: جلب طلاب المجموعة
       final studentsUrl = Uri.parse(
           'https://nour-al-eman.runasp.net/api/Group/GetGroupDetails?GroupId=${widget.groupId}&LevelId=${widget.levelId}');
       final studentsResponse = await http.get(studentsUrl, headers: {'Authorization': 'Bearer $token'});
-      debugPrint("Group Students Response: ${studentsResponse.body}");
-
-      // ✅ Call 2: جلب بيانات المجموعة الكاملة (empId, locId, sessions) من Getall
       final groupUrl = Uri.parse(
           'https://nour-al-eman.runasp.net/api/Group/Getall?levelid=${widget.levelId}');
       final groupResponse = await http.get(groupUrl);
-      debugPrint("Groups List Response: ${groupResponse.body}");
 
       if (studentsResponse.statusCode == 200 && mounted) {
         final Map<String, dynamic> studentsData = json.decode(studentsResponse.body);
         final List<dynamic> studentsList = studentsData['data'] ?? [];
-
-        // ✅ استخراج بيانات المجموعة المحددة من قائمة المجموعات
         Map<String, dynamic> groupInfo = {};
         if (groupResponse.statusCode == 200) {
           final groupsData = json.decode(groupResponse.body);
           final List<dynamic> allGroups = groupsData['data'] ?? [];
-          // إيجاد المجموعة بالـ ID
           final matchedGroups = allGroups.where((g) => g['id'] == widget.groupId).toList();
           if (matchedGroups.isNotEmpty) {
             groupInfo = Map<String, dynamic>.from(matchedGroups.first);
-            debugPrint("Found Group Info: $groupInfo");
           }
         }
 
         if (mounted) {
           setState(() {
             _students = studentsList;
-            // ✅ حفظ بيانات المجموعة الكاملة من Getall
             _currentGroupData = groupInfo.isNotEmpty ? groupInfo : {};
-
-            // تحديث اسم المجموعة
             if (groupInfo['name'] != null) displayGroupName = groupInfo['name'];
-
-            // ✅ استخراج empId - نستخدم empId مباشرة لأن emp.id بييجي null من API
             final dynamic rawEmpId = groupInfo['empId'] ?? groupInfo['emp']?['id'];
             if (rawEmpId != null) {
               final int parsedId = int.tryParse(rawEmpId.toString()) ?? 0;
               if (parsedId > 0) _resolvedTeacherId = parsedId;
             }
-            // fallback من widget.teacherId
             if (_resolvedTeacherId == 0 && widget.teacherId > 0) {
               _resolvedTeacherId = widget.teacherId;
             }
             if (groupInfo['emp']?['name'] != null) displayTeacherName = groupInfo['emp']['name'];
-
             _isLoading = false;
           });
         }
       }
     } catch (e) {
-      debugPrint("Group fetch error: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -134,12 +113,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
         final techBody2 = jsonDecode(techRes.body);
         final teachers = techBody2 is List ? techBody2 : (techBody2['data'] ?? []);
         final locations = jsonDecode(locRes.body)['data'] ?? [];
-        debugPrint("Teachers IDs: ${teachers.map((t) => '${t['id']}:${t['name']}').toList()}");
-        debugPrint("Locations IDs: ${locations.map((l) => '${l['id']}:${l['name']}').toList()}");
-        // تأكد أن الشيخ والمكتب الحاليين موجودين في القوائم
         final List<dynamic> finalTeachers = List.from(teachers);
         final List<dynamic> finalLocations = List.from(locations);
-
         if (_resolvedTeacherId > 0) {
           final teacherExists = finalTeachers.any((t) => t['id'] == _resolvedTeacherId);
           if (!teacherExists && _currentGroupData['emp'] != null) {
@@ -149,7 +124,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
             });
           }
         }
-
         final dynamic rawLocId2 = _currentGroupData['locId'] ?? _currentGroupData['loc']?['id'];
         if (rawLocId2 != null) {
           final int? locId2 = int.tryParse(rawLocId2.toString());
@@ -163,19 +137,16 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
             }
           }
         }
-
         setState(() {
           locationsList = finalLocations;
           teachersList = finalTeachers;
         });
       }
     } catch (e) {
-      debugPrint("Data Load Error: $e");
     }
   }
 
   Future<void> _updateGroupApi(String name, BuildContext dialogContext) async {
-    // ✅ Validation
     if (name.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("من فضلك أدخل اسم المجموعة"), backgroundColor: Colors.orange),
@@ -221,8 +192,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
         }).toList(),
       };
 
-      debugPrint("Update Group Payload: ${jsonEncode(requestBody)}");
-
       final response = await http.put(
         Uri.parse('https://nour-al-eman.runasp.net/api/Group/Update'),
         headers: {
@@ -232,8 +201,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
         },
         body: jsonEncode(requestBody),
       );
-
-      debugPrint("Update Group Response (${response.statusCode}): ${response.body}");
 
       if (response.statusCode == 200 || response.statusCode == 204) {
         if (mounted) Navigator.pop(dialogContext);
@@ -249,28 +216,21 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
 
   void _showEditGroupDialog() {
     TextEditingController nameCont = TextEditingController(text: displayGroupName ?? widget.groupName);
-
-    // ✅ الشيخ: من empId في _currentGroupData أو من _resolvedTeacherId
     final dynamic rawEmpId = _currentGroupData['empId'] ?? _currentGroupData['emp']?['id'];
     final int? parsedTeacherId = rawEmpId != null
         ? int.tryParse(rawEmpId.toString())
         : (_resolvedTeacherId > 0 ? _resolvedTeacherId : null);
-    // تأكد أن الـ ID موجود فعلاً في القائمة قبل تعيينه
     final teacherIds = teachersList.map((t) => t['id'] as int?).toSet();
     selectedTeacherId = (parsedTeacherId != null && teacherIds.contains(parsedTeacherId))
         ? parsedTeacherId
         : null;
-
-    // ✅ المكتب: من locId في _currentGroupData
     final dynamic rawLocId = _currentGroupData['locId'] ?? _currentGroupData['loc']?['id'];
     final int? parsedLocId = rawLocId != null ? int.tryParse(rawLocId.toString()) : null;
-    // تأكد أن الـ ID موجود فعلاً في القائمة قبل تعيينه
     final locationIds = locationsList.map((l) => l['id'] as int?).toSet();
     selectedLocationId = (parsedLocId != null && locationIds.contains(parsedLocId))
         ? parsedLocId
         : null;
 
-    // ✅ الأيام: من groupSessions أو sessions
     final List sessions = _currentGroupData['groupSessions'] ?? _currentGroupData['sessions'] ?? [];
     selectedDays = sessions
         .map<int>((s) {
@@ -280,8 +240,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
         .where((d) => d > 0)
         .toSet()
         .toList();
-
-    // ✅ الوقت: من أول session أو من حقل time
     String? rawTime = _currentGroupData['time'];
     if (sessions.isNotEmpty) {
       rawTime = sessions[0]['hour'] ?? sessions[0]['Hour'] ?? rawTime;
@@ -317,8 +275,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                     _buildLabel("اسم المجموعة"),
                     TextField(controller: nameCont, decoration: _inputDecoration("الاسم")),
                     const SizedBox(height: 15),
-
-                    // ✅ الشيخ - يظهر الشيخ الحالي مختاراً
                     _buildLabel("الشيخ"),
                     DropdownButtonFormField<int>(
                       isExpanded: true,
@@ -334,8 +290,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                       },
                     ),
                     const SizedBox(height: 15),
-
-                    // ✅ الوقت - يظهر الوقت الحالي
                     _buildLabel("وقت الحصة"),
                     OutlinedButton.icon(
                       icon: const Icon(Icons.access_time),
@@ -355,8 +309,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                       },
                     ),
                     const SizedBox(height: 15),
-
-                    // ✅ المكتب - يظهر المكتب الحالي مختاراً
                     _buildLabel("المكتب"),
                     DropdownButtonFormField<int>(
                       isExpanded: true,
@@ -372,8 +324,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                       },
                     ),
                     const SizedBox(height: 20),
-
-                    // ✅ الأيام - الأيام الحالية محددة
                     _buildLabel("الأيام"),
                     Wrap(
                       spacing: 5,
@@ -567,8 +517,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
-
-      // أولاً: جلب بيانات الطالب الكاملة
       final getResponse = await http.get(
         Uri.parse('https://nour-al-eman.runasp.net/api/Student/GetById?id=$studentId'),
         headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
@@ -587,9 +535,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
       } else if (rawData is Map<String, dynamic>) {
         fullData = Map<String, dynamic>.from(rawData);
       }
-
-      // ثانياً: بناء payload نظيف بدون nested objects
-      // السيرفر بيرفض لو group موجود وجواه days/time = null
       final Map<String, dynamic> cleanPayload = {
         "id": fullData['id'],
         "name": fullData['name'],
@@ -606,9 +551,9 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
         "joinDate": fullData['joinDate'],
         "locId": fullData['locId'],
         "levelId": fullData['levelId'],
-        "groupId": null, // إزالة الطالب من المجموعة
-        "days": [],      // مطلوب من السيرفر
-        "time": "00:00", // مطلوب من السيرفر
+        "groupId": null,
+        "days": [],
+        "time": "00:00",
       };
 
       debugPrint("Clean remove student payload: ${jsonEncode(cleanPayload)}");
@@ -750,7 +695,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              // بانر الشيخ
               InkWell(
                 onTap: () {
                   if (_resolvedTeacherId == 0) {

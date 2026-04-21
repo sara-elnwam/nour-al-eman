@@ -174,8 +174,6 @@ class _StudentWaitingListScreenState extends State<StudentWaitingListScreen> {
     ),
   );
 }
-
-// ── Dialog مشترك ─────────────────────────────────────────────────
 void _showWaitingDialog(BuildContext context, int id, bool isAccept, Future<void> Function(int, bool) onAction) {
   showDialog(
     context: context,

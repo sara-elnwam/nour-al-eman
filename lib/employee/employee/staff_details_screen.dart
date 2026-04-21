@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'attendance_logs_tab.dart';
 import 'teacher_schedule_tab.dart';
 import 'edit_teacher_screen.dart';
-// توحيد الألوان مع تصميم الطالب
 const Color kPrimaryBlue = Color(0xFF07427C);
 const Color kTextDark = Color(0xFF2E3542);
 const Color kBgGrey = Color(0xFFF8FAFC);
@@ -29,7 +28,6 @@ class _StaffDetailsScreenState extends State<StaffDetailsScreen> with SingleTick
   @override
   void initState() {
     super.initState();
-    // تم تغيير الطول إلى 3
     _tabController = TabController(length: 3, vsync: this);
     _fetchStaffInfo();
   }
@@ -47,7 +45,6 @@ class _StaffDetailsScreenState extends State<StaffDetailsScreen> with SingleTick
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
 
-      // تم تعديل الرابط هنا ليكون مطابقاً للرابط الصحيح وبدون شرطة
       final response = await http.get(
         Uri.parse('https://nour-al-eman.runasp.net/api/Employee/GetById?id=${widget.staffId}'),
         headers: {
@@ -59,7 +56,6 @@ class _StaffDetailsScreenState extends State<StaffDetailsScreen> with SingleTick
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
-          // تأكدي من الوصول للحقل 'data' بشكل صحيح
           staffData = data['data'];
           isLoadingInfo = false;
         });
@@ -92,7 +88,6 @@ class _StaffDetailsScreenState extends State<StaffDetailsScreen> with SingleTick
             style: const TextStyle(color: kTextDark, fontSize: 17, fontWeight: FontWeight.bold, fontFamily: 'Almarai'),
           ),
           iconTheme: const IconThemeData(color: kTextDark),
-          // داخل AppBar في ملف staff_details_screen.dart
           actions: [
             IconButton(
               icon: const Icon(Icons.edit_note, color: Color(0xFF1976D2), size: 26),
@@ -103,7 +98,7 @@ class _StaffDetailsScreenState extends State<StaffDetailsScreen> with SingleTick
                     MaterialPageRoute(
                       builder: (context) => EditTeacherScreen(staffData: staffData!),
                     ),
-                  ).then((_) => _fetchStaffInfo()); // تحديث البيانات بعد العودة من التعديل
+                  ).then((_) => _fetchStaffInfo());
                 }
               },
             ),
@@ -117,23 +112,20 @@ class _StaffDetailsScreenState extends State<StaffDetailsScreen> with SingleTick
             tabs: const [
               Tab(text: "البيانات الشخصية"),
               Tab(text: "سجل الحضور"),
-              Tab(text: "جدول الشيخ"), // التبويب الجديد
+              Tab(text: "جدول الشيخ"),
             ],
           ),
         ),
-        // داخل دالة build في الـ Scaffold body
         body: isLoadingInfo
             ? const Center(child: CircularProgressIndicator(color: kPrimaryBlue))
             : errorMessage.isNotEmpty
-            ? _buildErrorWidget()
-            :// 2. في الـ TabBarView استبدلي السطر القديم بـ:
-        // ابحثي عن التبويب الثالث وغيريه ليكون هكذا:
+            ? _buildErrorWidget() :
         TabBarView(
           controller: _tabController,
           children: [
             _buildInfoTab(),
             AttendanceLogsTab(empId: widget.staffId),
-            TeacherScheduleTab(empId: widget.staffId), // استدعاء الجدول هنا
+            TeacherScheduleTab(empId: widget.staffId),
           ],
         ),
       ),
@@ -162,7 +154,6 @@ class _StaffDetailsScreenState extends State<StaffDetailsScreen> with SingleTick
     );
   }
   Widget _buildInfoTab() {
-    // دالة لمعالجة التاريخ: إذا كان نل أو غير منطقي يرجع تاريخ اليوم
     String formatDateTime(dynamic dateValue) {
       if (dateValue == null) return "${DateTime.now().year}-${DateTime.now().month}-${DateTime.now().day}";
 
@@ -176,7 +167,6 @@ class _StaffDetailsScreenState extends State<StaffDetailsScreen> with SingleTick
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // الكارت الأول: بيانات الموظف
         _buildSectionCard("بيانات المعلم", Icons.badge_outlined, [
           _infoRow("اسم المعلم :", staffData!['name'] ?? "---"),
           _infoRow("كود المعلم :", staffData!['id']?.toString() ?? "---"),
@@ -185,9 +175,7 @@ class _StaffDetailsScreenState extends State<StaffDetailsScreen> with SingleTick
           _infoRow("المؤهل الدراسي :", staffData!['educationDegree'] ?? "---"),
         ]),
 
-        const SizedBox(height: 20), // مسافة بين الكارتين
-
-        // الكارت الجديد: الدورات التدريبية الحاصل عليها
+        const SizedBox(height: 20),
         _buildSectionCard("الدورات التدريبية الحاصل عليها", Icons.school_outlined, [
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 20),
@@ -195,7 +183,7 @@ class _StaffDetailsScreenState extends State<StaffDetailsScreen> with SingleTick
               child: Text(
                 "لا توجد دورات تدريبية",
                 style: TextStyle(
-                  color: Colors.red, // اللون الأحمر كما طلبتِ
+                  color: Colors.red,
                   fontFamily: 'Almarai',
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
@@ -226,11 +214,10 @@ class _StaffDetailsScreenState extends State<StaffDetailsScreen> with SingleTick
           Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
-              // تم التغيير ليكون المحاذات لليمين (بداية السطر)
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 Icon(icon, color: kPrimaryBlue, size: 20),
-                const SizedBox(width: 8), // مسافة صغيرة بين الأيقونة والنص
+                const SizedBox(width: 8),
                 Text(
                   title,
                   style: const TextStyle(

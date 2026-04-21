@@ -25,12 +25,8 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
     super.initState();
     _fetchAttendance();
   }
-
-  // ترجمة القيمة القادمة من السيرفر (ممكن تكون int أو String)
   String _mapNoteToText(dynamic noteValue) {
     if (noteValue == null) return "غير محدد";
-
-    // لو جاي كـ String جاهز من السيرفر مباشرة
     if (noteValue is String) {
       final trimmed = noteValue.trim();
       if (trimmed.isEmpty) return "غير محدد";
@@ -39,10 +35,7 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
       if (asInt != null) return _noteFromInt(asInt);
       return trimmed; // إرجاع النص كما هو
     }
-
-    // لو جاي كـ int
     if (noteValue is int) return _noteFromInt(noteValue);
-
     return "غير محدد";
   }
 
@@ -85,7 +78,6 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
       textDirection: TextDirection.rtl,
       child: Column(
         children: [
-          // الهيدر - مطابق تماماً لصورة الويب اللي بعتها
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
             decoration: const BoxDecoration(
@@ -119,10 +111,7 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
                         padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 8),
                         child: Row(
                           children: [
-                            // 1. موعد الحلقة (سحب createDate من الرسبونس)
                             Expanded(flex: 2, child: Text(item['createDate']?.split('T')[0] ?? '', textAlign: TextAlign.center, style: const TextStyle(fontSize: 10))),
-
-                            // 2. الحضور (isPresent)
                             Expanded(
                               flex: 1,
                               child: Text(
@@ -131,19 +120,9 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
                                 style: TextStyle(color: item['isPresent'] == true ? kSuccessGreen : kDangerRed, fontWeight: FontWeight.bold, fontSize: 10),
                               ),
                             ),
-
-                            // 3. حفظ قديم (oldAttendanceNote)
                             Expanded(flex: 2, child: Text(_mapNoteToText(item['oldAttendanceNote']), textAlign: TextAlign.center, style: const TextStyle(fontSize: 10))),
-
-                            // 4. حفظ جديد (newAttendanceNote)
                             Expanded(flex: 2, child: Text(_mapNoteToText(item['newAttendanceNote']), textAlign: TextAlign.center, style: const TextStyle(fontSize: 10))),
-
-                            // 5. زر تعليق المعلم
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                isExpanded ? "إخفاء" : "تعليق المعلم",
-                                textAlign: TextAlign.center,
+                            Expanded(flex: 2, child: Text(isExpanded ? "إخفاء" : "تعليق المعلم", textAlign: TextAlign.center,
                                 style: TextStyle(color: isExpanded ? kDangerRed : kPrimaryBlue, fontWeight: FontWeight.bold, fontSize: 10, decoration: TextDecoration.underline),
                               ),
                             ),
@@ -151,8 +130,6 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
                         ),
                       ),
                     ),
-
-                    // الأنيميشن بتاع تعليق المعلم والتقييم (سحب note و points)
                     AnimatedSize(
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeInOut,
@@ -165,14 +142,12 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
                             ? Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // سحب تعليق المعلم الفعلي من السيرفر
                             Expanded(
                               child: Text(
                                   "تعليق المعلم: ${item['note'] ?? 'No comment'}",
                                   style: const TextStyle(color: kSuccessGreen, fontWeight: FontWeight.bold, fontSize: 11)
                               ),
                             ),
-                            // سحب التقييم بالنقاط الفعلي من السيرفر
                             Text(
                                 "التقييم: ${item['points'] ?? 0} نقاط",
                                 style: const TextStyle(color: kSuccessGreen, fontWeight: FontWeight.bold, fontSize: 11)

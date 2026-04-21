@@ -25,8 +25,6 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen> {
     super.initState();
     fetchData();
   }
-
-  // جلب البيانات مع إضافة التحقق من mounted لحل مشكلة الخطأ في الـ Log
   Future<void> fetchData() async {
     if (!mounted) return;
     setState(() => isLoading = true);
@@ -51,8 +49,6 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen> {
       }
     }
   }
-
-  // الإضافة والتعديل - تم تعديل الـ Method للتعديل ليكون PUT بناءً على صور الـ DevTools
   Future<void> submitData({required bool isEdit, int? id}) async {
     final String endpoint = isEdit ? "Update" : "Save";
     final String url = "https://nour-al-eman.runasp.net/api/EmployeeCources/$endpoint"
@@ -65,8 +61,6 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen> {
       };
 
       if (isEdit) bodyData["id"] = id;
-
-      // تعديل هنا: استخدام PUT في حالة التعديل كما ظهر في الـ Network Tab
       final response = isEdit
           ? await http.put(
         Uri.parse(url),
@@ -138,7 +132,6 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen> {
   }
 
   Widget _buildMainContent() {
-    // التحقق مما إذا كانت القائمة فارغة بعد انتهاء التحميل
     if (currentData.isEmpty) {
       return Center(
         child: Column(
@@ -152,7 +145,7 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen> {
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
-              onPressed: fetchData, // زر لتحديث البيانات يدوياً
+              onPressed: fetchData,
               icon: const Icon(Icons.refresh, size: 18),
               label: const Text("تحديث الصفحة"),
               style: ElevatedButton.styleFrom(backgroundColor: kPrimaryOrange),
@@ -161,8 +154,6 @@ class _TeacherCoursesScreenState extends State<TeacherCoursesScreen> {
         ),
       );
     }
-
-    // إذا كانت البيانات موجودة، يظهر الجدول الطبيعي كما هو في كودك الأصلي
     return Column(
       children: [
         Padding(

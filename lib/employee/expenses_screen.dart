@@ -9,7 +9,7 @@ const Color kBorderColor = Color(0xFFE2E8F0);
 final Color primaryOrange = const Color(0xFFC66422);
 final Color darkBlue      = const Color(0xFF2E3542);
 
-const String _apiBase = 'https://nourelman.runasp.net';
+const String _apiBase = 'https://nour-al-eman.runasp.net';
 
 class ExpensesScreen extends StatefulWidget {
   const ExpensesScreen({Key? key}) : super(key: key);
@@ -44,7 +44,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     await Future.wait([_fetchExpenses(), _fetchFacilityTypes()]);
   }
 
-  // ── API ───────────────────────────────────────────────────
 
   Future<void> _fetchCurrentUser() async {
     try {
@@ -57,7 +56,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         final name = jsonDecode(res.body)['data']?['name'];
         if (name != null && mounted) setState(() => _currentUserName = name);
       }
-    } catch (e) { debugPrint('❌ fetchCurrentUser: $e'); }
+    } catch (e) { debugPrint(' fetchCurrentUser: $e'); }
   }
 
   Future<void> _fetchExpenses() async {
@@ -65,16 +64,15 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     try {
       final res = await http.get(
           Uri.parse('$_apiBase/api/FacilityPayment/Getall'));
-      debugPrint('📥 FacilityPayment status: ${res.statusCode}');
+      debugPrint(' FacilityPayment status: ${res.statusCode}');
       if (res.statusCode == 200) {
         final decoded = jsonDecode(res.body);
         final List raw = decoded['data'] ?? [];
-        // ✅ cast صريح لكل عنصر عشان facilityType يتقرأ صح
         setState(() => _expenses = raw.map((e) =>
         Map<String, dynamic>.from(e as Map)).toList());
       }
     } catch (e) {
-      debugPrint('❌ fetchExpenses: $e');
+      debugPrint(' fetchExpenses: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -89,7 +87,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         setState(() => _facilityTypes = raw.map((e) =>
         Map<String, dynamic>.from(e as Map)).toList());
       }
-    } catch (e) { debugPrint('❌ fetchFacilityTypes: $e'); }
+    } catch (e) { debugPrint(' fetchFacilityTypes: $e'); }
   }
 
   Future<void> _addExpense(int facilityTypeId, double value) async {
@@ -136,7 +134,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       } else {
         if (mounted) _showSnack('فشل التعديل: ${res.statusCode}', Colors.red);
       }
-    } catch (e) { debugPrint('❌ update: $e'); }
+    } catch (e) { debugPrint(' update: $e'); }
   }
 
   Future<void> _deleteExpense(int id) async {
@@ -152,7 +150,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       } else {
         if (mounted) _showSnack('فشل الحذف: ${res.statusCode}', Colors.red);
       }
-    } catch (e) { debugPrint('❌ delete: $e'); }
+    } catch (e) { debugPrint(' delete: $e'); }
   }
 
   void _showSnack(String msg, Color color) {
@@ -162,9 +160,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     ));
   }
 
-  // ── Helpers ───────────────────────────────────────────────
-
-  // ✅ استخراج String من أي نوع
   String? _extractStr(dynamic v) {
     if (v == null) return null;
     if (v is String) return v.isNotEmpty ? v : null;
@@ -172,15 +167,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     return v.toString();
   }
 
-  // ✅ استخراج اسم النوع من facilityType object أو من القائمة
   String _getTypeName(Map<String, dynamic> item) {
-    // أولاً: من facilityType object مباشرةً
     final ft = item['facilityType'];
     if (ft != null) {
       final name = (ft as Map)['name']?.toString();
       if (name != null && name.isNotEmpty) return name;
     }
-    // ثانياً: من القائمة باستخدام facilityTypeId
     final rawId = item['facilityTypeId'];
     if (rawId != null) {
       for (final t in _facilityTypes) {
@@ -203,7 +195,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     } catch (_) { return s.length >= 10 ? s.substring(0, 10) : s; }
   }
 
-  // ── Dialogs ───────────────────────────────────────────────
 
   void _showAddDialog() {
     final valueCtrl = TextEditingController();
@@ -330,8 +321,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     );
   }
 
-  // ── Dialog widgets ────────────────────────────────────────
-
   Widget _fieldLabel(String label) => Padding(
     padding: const EdgeInsets.only(bottom: 6),
     child: Align(
@@ -408,10 +397,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         )),
       ]);
 
-  // ── Table ─────────────────────────────────────────────────
-
-  // الهيدر: # | النوع | التاريخ | بواسطة | القيمة | تعديل | حذف
-  // عرض ثابت للجدول يسمح بالسكرول الأفقي
   static const double _tableWidth = 580.0;
 
   Widget _buildHeader() {
@@ -472,8 +457,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       ]),
     );
   }
-
-  // ── Build ─────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -544,8 +527,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             ],
           ),
         ),
-
-        // ── زر الإضافة ──
         Positioned(
           bottom: 88, left: 24,
           child: SizedBox(

@@ -26,9 +26,6 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
   String? selectedLevelId;
   File? selectedFile;
   String? selectedFileName;
-
-
-  // المستويات (ديناميكية من API)
   List<dynamic> _levelsList = [];
   bool _isLoadingLevels = true;
 
@@ -66,7 +63,6 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
       setState(() => _isLoadingLevels = false);
     }
   }
-
   Future<void> fetchData(int typeId) async {
     setState(() => isLoading = true);
     try {
@@ -85,8 +81,6 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
       setState(() => isLoading = false);
     }
   }
-
-
   Future<void> deleteItem(int id) async {
     try {
 
@@ -192,8 +186,8 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
     try {
       var response = await request.send();
       if (response.statusCode == 200) {
-        Navigator.pop(context); // إغلاق المودال
-        fetchData(tabItems[_currentTabIndex]['id']); // تحديث الجدول
+        Navigator.pop(context);
+        fetchData(tabItems[_currentTabIndex]['id']);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تمت الإضافة بنجاح")));
       } else {
         print("Error: ${response.statusCode}");
@@ -311,7 +305,7 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
           Expanded(flex: 1, child: Center(child: Icon(item['mandatory'] == true ? Icons.check : Icons.close, color: Colors.red, size: 18))),
           Expanded(flex: 1, child: InkWell(onTap: () => _showAddEditModal(context, isEdit: true, data: item), child: Icon(Icons.edit_note, color: kPrimaryOrange, size: 24))),
           InkWell(
-            onTap: () => _showDeleteDialog(context, item['id']), // تأكد أن المفتاح هو 'id' وليس 'Id'
+            onTap: () => _showDeleteDialog(context, item['id']),
             child: const Icon(Icons.delete, color: Colors.red, size: 20),
           ),
         ],
@@ -423,19 +417,16 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
             const SizedBox(height: 25),
             Row(
               children: [
-                // زر التأكيد
-                // زر التأكيد داخل الـ Row في دالة _showDeleteDialog
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      deleteItem(id); // استدعاء الدالة وتمرير الـ ID
-                    },
+                      deleteItem(id);},
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                     child: const Text("تأكيد", style: TextStyle(color: Colors.white)),
                   ),
                 ),
                 const SizedBox(width: 10),
-                // زر الإلغاء
+
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () => Navigator.pop(context),

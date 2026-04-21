@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'facility_type_screen.dart';
 import 'expenses_screen.dart';
 import 'student_payment_screen.dart';
-import 'employee_rating_screen.dart'; // ✅ شاشة تقييم الموظفين
+import 'employee_rating_screen.dart';
 
 const Color _kOrange      = Color(0xFFC66422);
 const Color _kDarkBlue    = Color(0xFF2E3542);
@@ -17,7 +17,6 @@ class ExpensesHubScreen extends StatefulWidget {
 }
 
 class _ExpensesHubScreenState extends State<ExpensesHubScreen> {
-  // -1 = شاشة الكاردات   |   0,1,2,3 = الشاشات الفرعية
   int _activeSection = -1;
 
   final List<_SectionMeta> _sections = const [
@@ -56,13 +55,11 @@ class _ExpensesHubScreenState extends State<ExpensesHubScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ── شاشة فرعية مفتوحة ────────────────────────────────────
     if (_activeSection >= 0) {
       return Directionality(
         textDirection: TextDirection.rtl,
         child: Column(
           children: [
-            // شريط العنوان الداخلي
             Container(
               color: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
@@ -85,14 +82,11 @@ class _ExpensesHubScreenState extends State<ExpensesHubScreen> {
               ),
             ),
             const Divider(height: 1, color: _kBorderColor),
-            // المحتوى
             Expanded(child: _buildSectionBody(_activeSection)),
           ],
         ),
       );
     }
-
-    // ── شاشة الكاردات ────────────────────────────────────────
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Padding(
@@ -100,7 +94,6 @@ class _ExpensesHubScreenState extends State<ExpensesHubScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // عنوان القسم
             Row(
               children: [
                 Container(
@@ -133,8 +126,6 @@ class _ExpensesHubScreenState extends State<ExpensesHubScreen> {
               ],
             ),
             const SizedBox(height: 20),
-
-            // الكاردات
             Expanded(
               child: GridView.count(
                 crossAxisCount: 1,
@@ -157,13 +148,12 @@ class _ExpensesHubScreenState extends State<ExpensesHubScreen> {
       case 0: return const FacilityTypeScreen();
       case 1: return const ExpensesScreen();
       case 2: return const StudentPaymentScreen();
-      case 3: return const EmployeeRatingScreen(); // ✅ تقييم الموظفين
+      case 3: return const EmployeeRatingScreen();
       default: return const SizedBox.shrink();
     }
   }
 }
 
-// ── بيانات كل قسم ────────────────────────────────────────────
 class _SectionMeta {
   final IconData icon;
   final String   label;
@@ -179,7 +169,6 @@ class _SectionMeta {
   });
 }
 
-// ── كارد فردي ────────────────────────────────────────────────
 class _HubCard extends StatelessWidget {
   final _SectionMeta meta;
   final VoidCallback onTap;

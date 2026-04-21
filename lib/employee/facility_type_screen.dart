@@ -62,7 +62,7 @@ class _FacilityTypeScreenState extends State<FacilityTypeScreen> {
         if (name != null && mounted) setState(() => _currentUserName = name);
       }
     } catch (e) {
-      debugPrint('❌ fetchCurrentUser: $e');
+      debugPrint('fetchCurrentUser: $e');
     }
   }
 
@@ -76,7 +76,7 @@ class _FacilityTypeScreenState extends State<FacilityTypeScreen> {
         setState(() => _facilityTypes = List<Map<String, dynamic>>.from(data));
       }
     } catch (e) {
-      debugPrint('❌ fetchFacilityTypes: $e');
+      debugPrint('fetchFacilityTypes: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -124,7 +124,7 @@ class _FacilityTypeScreenState extends State<FacilityTypeScreen> {
         if (mounted) _showSnack('فشل التعديل: ${response.statusCode}', Colors.red);
       }
     } catch (e) {
-      debugPrint('❌ update: $e');
+      debugPrint('update: $e');
     }
   }
 
@@ -141,7 +141,7 @@ class _FacilityTypeScreenState extends State<FacilityTypeScreen> {
         if (mounted) _showSnack('فشل الحذف: ${response.statusCode}', Colors.red);
       }
     } catch (e) {
-      debugPrint('❌ delete: $e');
+      debugPrint('delete: $e');
     }
   }
 
@@ -153,8 +153,6 @@ class _FacilityTypeScreenState extends State<FacilityTypeScreen> {
       ),
     );
   }
-
-  // ── Dialogs ────────────────────────────────────────────────
 
   void _showAddDialog() {
     final ctrl = TextEditingController();
@@ -322,7 +320,6 @@ class _FacilityTypeScreenState extends State<FacilityTypeScreen> {
     ]);
   }
 
-  // ── Helpers ────────────────────────────────────────────────
 
   String _extractCreatedBy(dynamic v) {
     if (v == null) return '---';
@@ -330,9 +327,6 @@ class _FacilityTypeScreenState extends State<FacilityTypeScreen> {
     if (v is Map) return v['name']?.toString() ?? '---';
     return '---';
   }
-
-  // ── Table ──────────────────────────────────────────────────
-
   Widget _buildRowWidget({
     required String num,
     required String name,
@@ -405,8 +399,6 @@ class _FacilityTypeScreenState extends State<FacilityTypeScreen> {
     );
   }
 
-  // ── Build ──────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return Directionality(
@@ -476,8 +468,6 @@ class _FacilityTypeScreenState extends State<FacilityTypeScreen> {
             ],
           ),
         ),
-
-        // ── زر الإضافة ──
         Positioned(
           bottom: 88,
           left: 24,

@@ -39,11 +39,8 @@ class AttendanceData {
   });
 
   factory AttendanceData.fromJson(Map<String, dynamic> json) => AttendanceData(
-    // ✅ FIX: السيرفر بيرجع "username" (lowercase) مش "userName"
-    // بنجرب الاتنين عشان نضمن الشغل في كل الحالات
     userName: json["userName"] ?? json["username"],
     checkType: json["checkType"],
-    // ✅ FIX: السيرفر بيرجع "locationName" - تأكد من الحقل ده
     locationName: json["locationName"],
     date: json["date"],
     checkInTime: json["checkInTime"],
