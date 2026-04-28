@@ -86,8 +86,7 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
     return null;
   }
 
-  // ✅ FIX: السيرفر هو المصدر الأساسي لحالة الحضور
-  // الكاش المحلي fallback فقط لو السيرفر مش متاح
+  // ✅ السيرفر هو المصدر الوحيد لحالة الحضور - لا كاش محلي إطلاقاً
   Future<void> _checkCurrentStatus() async {
     setState(() => _isLoadingStatus = true);
     try {
@@ -98,78 +97,45 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
       final String todayDate =
       intl.DateFormat('yyyy-MM-dd').format(DateTime.now());
 
-      // 1. جرب السيرفر أولاً
-      bool serverSuccess = false;
-      try {
-        final String userGuid = prefs.getString('user_guid') ?? '';
-        final String tokenStatus = prefs.getString('user_token') ?? '';
-        if (userGuid.isNotEmpty) {
-          final url =
-              'https://nourelman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=$userGuid';
-          final response = await http.get(
-            Uri.parse(url),
-            headers: {
-              if (tokenStatus.isNotEmpty && tokenStatus != 'no_token')
-                'Authorization': 'Bearer $tokenStatus',
-            },
-          ).timeout(const Duration(seconds: 10));
+      final String userGuid = prefs.getString('user_guid') ?? '';
+      final String tokenStatus = prefs.getString('user_token') ?? '';
 
-          if (response.statusCode == 200) {
-            serverSuccess = true;
-            final data = json.decode(response.body);
-            final List<dynamic> logs = data['data'] ?? [];
+      if (userGuid.isEmpty) return;
 
-            // احفظ داتا السيرفر في الكاش لتحديثه
-            await prefs.setString('local_attendance_$empId', jsonEncode(logs));
+      final url =
+          'https://nourelman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=$userGuid';
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          if (tokenStatus.isNotEmpty && tokenStatus != 'no_token')
+            'Authorization': 'Bearer $tokenStatus',
+        },
+      ).timeout(const Duration(seconds: 10));
 
-            // شوف آخر حالة لليوم ده
-            String? lastStatusToday;
-            for (var log in logs) {
-              final String? normalized = _normalizeDate(log['date']?.toString());
-              if (normalized == todayDate) {
-                final bool hasCheckOut = log['checkOutTime'] != null &&
-                    log['checkOutTime'].toString().isNotEmpty &&
-                    log['checkOutTime'].toString() != "--";
-                lastStatusToday = hasCheckOut ? "check-in" : "check-out";
-                // لا break هنا - نكمل لآخر سجل لليوم ده
-              }
-            }
-            if (lastStatusToday != null && mounted) {
-              setState(() => _checkType = lastStatusToday!);
-            }
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<dynamic> logs = data['data'] ?? [];
+
+        // شوف آخر حالة لليوم ده من السيرفر مباشرة
+        String? lastStatusToday;
+        for (var log in logs) {
+          final String? normalized = _normalizeDate(log['date']?.toString());
+          if (normalized == todayDate) {
+            final bool hasCheckOut = log['checkOutTime'] != null &&
+                log['checkOutTime'].toString().isNotEmpty &&
+                log['checkOutTime'].toString() != "--";
+            lastStatusToday = hasCheckOut ? "check-in" : "check-out";
+            // لا break - نكمل لآخر سجل لليوم ده
           }
         }
-      } catch (e) {
-        debugPrint("Server status check error: $e");
-      }
-
-      // 2. Fallback: لو السيرفر فشل، خذ من الكاش المحلي
-      if (!serverSuccess) {
-        final localKey = 'local_attendance_$empId';
-        final localJson = prefs.getString(localKey);
-        if (localJson != null) {
-          try {
-            final List<dynamic> localRecords = jsonDecode(localJson);
-            String? lastStatusToday;
-            for (var rec in localRecords) {
-              final normalized = _normalizeDate(rec['date']?.toString());
-              if (normalized == todayDate) {
-                final bool hasCheckOut = (rec['checkOutTime'] != null &&
-                    rec['checkOutTime'].toString().isNotEmpty) ||
-                    rec['checkType'] == 'check-out';
-                lastStatusToday = hasCheckOut ? "check-in" : "check-out";
-              }
-            }
-            if (lastStatusToday != null && mounted) {
-              setState(() => _checkType = lastStatusToday!);
-            }
-          } catch (e) {
-            debugPrint("Local cache read error: $e");
-          }
+        if (lastStatusToday != null && mounted) {
+          setState(() => _checkType = lastStatusToday!);
         }
+      } else {
+        debugPrint("❌ Status check failed: ${response.statusCode}");
       }
     } catch (e) {
-      debugPrint("Status check error: $e");
+      debugPrint("❌ Status check error: $e");
     } finally {
       if (mounted) setState(() => _isLoadingStatus = false);
     }
@@ -276,6 +242,7 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
     }
   }
 
+  // ✅ البصمة تُرسل للسيرفر فقط - لو فشل الإرسال يظهر خطأ ولا يُحفظ محلياً
   Future<void> _sendAttendanceToServer() async {
     setState(() => _isLoading = true);
     try {
@@ -335,14 +302,6 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
             Colors.green,
           );
           _flipCheckType();
-          await prefs.setString('last_check_type', _checkType);
-
-          // ✅ FIX: بعد البصم الناجح، امسح الكاش القديم فوراً
-          // السيرفر هيبعت الداتا الصح في الـ _checkCurrentStatus الجاية
-          final String empId = prefs.getString('user_id') ?? '';
-          if (empId.isNotEmpty) {
-            await prefs.remove('local_attendance_$empId');
-          }
         } else {
           _showSnackBar("خطأ: ${responseData['error']}", Colors.red);
         }
@@ -350,14 +309,9 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
         _showSnackBar("فشل في الاتصال بالسيرفر (${response.statusCode})", Colors.red);
       }
     } catch (e) {
-      debugPrint("EXCEPTION: $e");
-      // ✅ FIX: في حالة فشل الإرسال للسيرفر، احفظ محلياً كـ fallback فقط
-      final prefs = await SharedPreferences.getInstance();
-      final String empId = prefs.getString('user_id') ?? '';
-      if (empId.isNotEmpty) {
-        await _saveLocally(prefs, empId);
-      }
-      _showSnackBar("لا يوجد اتصال بالإنترنت، تم الحفظ محلياً مؤقتاً", Colors.orange);
+      debugPrint("❌ Send attendance error: $e");
+      // ❌ لا حفظ محلي - لو السيرفر مش متاح يظهر خطأ فقط
+      _showSnackBar("لا يوجد اتصال بالإنترنت، لم يتم تسجيل الحضور. حاول مرة أخرى", Colors.red);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -368,94 +322,6 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
       setState(() {
         _checkType = _checkType == "check-in" ? "check-out" : "check-in";
       });
-    }
-  }
-
-  Future<void> _saveLocally(SharedPreferences prefs, String rawId) async {
-    try {
-      String userName = "";
-      final empDataStr = prefs.getString('employee_name');
-      if (empDataStr != null && empDataStr.isNotEmpty) {
-        userName = empDataStr;
-      } else {
-        final loginDataStr = prefs.getString('loginData');
-        if (loginDataStr != null) {
-          final ld = jsonDecode(loginDataStr);
-          userName = ld['name']?.toString() ?? ld['userName']?.toString() ?? "";
-        }
-      }
-
-      String effectiveId = rawId;
-      if (effectiveId.isEmpty || effectiveId == "0") {
-        final loginDataStr2 = prefs.getString('loginData');
-        if (loginDataStr2 != null) {
-          final ld = jsonDecode(loginDataStr2);
-          effectiveId = ld['userId']?.toString() ?? ld['id']?.toString() ?? rawId;
-        }
-      }
-
-      // ✅ FIX: key واحد بس للـ user ده، مش multiple keys
-      final localKey = 'local_attendance_$effectiveId';
-      debugPrint("💾 Saving attendance locally (offline fallback) with key: $localKey");
-      final existing = prefs.getString(localKey);
-      List<dynamic> records = existing != null ? jsonDecode(existing) : [];
-
-      final now = DateTime.now();
-      final todayStr = '${now.month}/${now.day}/${now.year}';
-      final timeStr =
-          '${now.hour > 12 ? now.hour - 12 : now.hour == 0 ? 12 : now.hour}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')} ${now.hour >= 12 ? 'PM' : 'AM'}';
-      final todayNormalized = intl.DateFormat('yyyy-MM-dd').format(now);
-
-      if (_checkType == 'check-in') {
-        final bool alreadyHasOpenCheckIn = records.any((r) {
-          final recNormalized = _normalizeDate(r['date']?.toString());
-          return recNormalized == todayNormalized &&
-              r['checkInTime'] != null &&
-              r['checkOutTime'] == null &&
-              r['checkType'] == 'check-in';
-        });
-
-        if (!alreadyHasOpenCheckIn) {
-          records.insert(0, {
-            'userName': userName,
-            'checkType': 'check-in',
-            'locationName': _selectedLocationName ?? "",
-            'date': todayStr,
-            'checkInTime': timeStr,
-            'checkOutTime': null,
-            'workingHours': null,
-          });
-        }
-      } else {
-        int openIdx = records.indexWhere((r) {
-          final recNormalized = _normalizeDate(r['date']?.toString());
-          return recNormalized == todayNormalized &&
-              r['checkInTime'] != null &&
-              r['checkOutTime'] == null;
-        });
-
-        if (openIdx >= 0) {
-          records[openIdx]['checkOutTime'] = timeStr;
-          records[openIdx]['checkType'] = 'check-out';
-          records[openIdx]['workingHours'] =
-              _calcWorkingHours(records[openIdx]['checkInTime'], timeStr);
-        } else {
-          records.insert(0, {
-            'userName': userName,
-            'checkType': 'check-out',
-            'locationName': _selectedLocationName ?? "",
-            'date': todayStr,
-            'checkInTime': null,
-            'checkOutTime': timeStr,
-            'workingHours': null,
-          });
-        }
-      }
-
-      if (records.length > 200) records = records.sublist(0, 200);
-      await prefs.setString(localKey, jsonEncode(records));
-    } catch (e) {
-      debugPrint('Local save error: $e');
     }
   }
 

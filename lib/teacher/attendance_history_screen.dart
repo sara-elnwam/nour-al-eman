@@ -15,6 +15,7 @@ class AttendanceHistoryScreen extends StatefulWidget {
 
 class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
   bool _isLoading = true;
+  bool _hasError = false;
   Map<String, List<AttendanceData>> _groupedAttendance = {};
   List<String> _availableMonths = [];
   int _currentMonthIndex = 0;
@@ -34,16 +35,12 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
     return null;
   }
 
-  String? _toNormalizedDate(String? dateStr) {
-    final parsed = _parseServerDate(dateStr);
-    if (parsed == null) return null;
-    return DateFormat('yyyy-MM-dd').format(parsed);
-  }
-
-  // ✅ FIX: السيرفر هو المصدر الوحيد للحقيقة
-  // الكاش المحلي = fallback فقط لو السيرفر مش متاح
+  // ✅ السيرفر هو المصدر الوحيد - لا كاش محلي إطلاقاً
   Future<void> _fetchAttendanceLogs() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -51,81 +48,51 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
 
       if (userId == null || userId.isEmpty || userId == "0") {
         _showError("لم يتم العثور على بيانات المستخدم");
+        setState(() => _hasError = true);
         return;
       }
 
-      final List<AttendanceData> records = [];
-      bool serverSuccess = false;
+      final String token = prefs.getString('user_token') ?? '';
+      final url =
+          "https://nourelman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=${prefs.getString('user_guid') ?? ''}";
 
-      // 1. السيرفر أولاً
-      try {
-        final String token = prefs.getString('user_token') ?? '';
-        final url =
-            "https://nourelman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=${prefs.getString('user_guid') ?? ''}";
-        final response = await http.get(
-          Uri.parse(url),
-          headers: {
-            if (token.isNotEmpty && token != 'no_token')
-              'Authorization': 'Bearer $token',
-          },
-        ).timeout(const Duration(seconds: 15));
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          if (token.isNotEmpty && token != 'no_token')
+            'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 15));
 
-        if (response.statusCode == 200) {
-          final decoded = jsonDecode(response.body);
-          final List<dynamic> serverData = decoded['data'] ?? [];
-          debugPrint("📡 Server returned ${serverData.length} records");
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        final List<dynamic> serverData = decoded['data'] ?? [];
+        debugPrint("📡 Server returned ${serverData.length} records");
 
-          for (var item in serverData) {
-            records.add(AttendanceData(
-              userName: item['userName'] ?? item['username'],
-              checkType: item['checkType'],
-              locationName: item['locationName'],
-              date: item['date'],
-              checkInTime: item['checkInTime'],
-              checkOutTime: item['checkOutTime'],
-              workingHours: item['workingHours'],
-            ));
-          }
-
-          serverSuccess = true;
-
-          // احفظ النسخة الأخيرة في الكاش لتحديثه للـ fallback الجاي
-          await prefs.setString('local_attendance_$userId', jsonEncode(serverData));
+        final List<AttendanceData> records = [];
+        for (var item in serverData) {
+          records.add(AttendanceData(
+            userName: item['userName'] ?? item['username'],
+            checkType: item['checkType'],
+            locationName: item['locationName'],
+            date: item['date'],
+            checkInTime: item['checkInTime'],
+            checkOutTime: item['checkOutTime'],
+            workingHours: item['workingHours'],
+          ));
         }
-      } catch (e) {
-        debugPrint('Server fetch error: $e');
+
+        debugPrint("✅ Total records to display: ${records.length}");
+        _processData(records);
+      } else {
+        debugPrint("❌ Server error: ${response.statusCode}");
+        _showError("فشل في تحميل البيانات من السيرفر (${response.statusCode})");
+        setState(() => _hasError = true);
       }
-
-      // 2. Fallback: لو السيرفر فشل، خذ من الكاش المحلي فقط
-      if (!serverSuccess) {
-        debugPrint("⚠️ Server unavailable, falling back to local cache");
-        final String? localJson = prefs.getString('local_attendance_$userId');
-        if (localJson != null) {
-          try {
-            final List<dynamic> localList = jsonDecode(localJson);
-            for (var item in localList) {
-              records.add(AttendanceData(
-                userName: item['userName'] ?? item['username'],
-                checkType: item['checkType'],
-                locationName: item['locationName'],
-                date: item['date'],
-                checkInTime: item['checkInTime'],
-                checkOutTime: item['checkOutTime'],
-                workingHours: item['workingHours'],
-              ));
-            }
-            debugPrint("📦 Loaded ${records.length} records from local cache");
-          } catch (e) {
-            debugPrint('Error loading local cache: $e');
-          }
-        }
-      }
-
-      debugPrint("✅ Total records to display: ${records.length}");
-      _processData(records);
-
     } catch (e) {
-      debugPrint("Error: $e");
+      debugPrint("❌ Fetch error: $e");
+      _showError("تعذر الاتصال بالسيرفر، تحقق من الإنترنت وحاول مرة أخرى");
+      setState(() => _hasError = true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -191,6 +158,8 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
         ),
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
+            : _hasError
+            ? _buildErrorState()
             : _availableMonths.isEmpty
             ? _buildEmptyState()
             : Column(
@@ -348,6 +317,27 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
               style: TextStyle(color: Colors.grey, fontFamily: 'Almarai')),
           TextButton(
               onPressed: _fetchAttendanceLogs, child: const Text("تحديث البيانات"))
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.cloud_off, size: 80, color: Colors.grey[300]),
+          const SizedBox(height: 16),
+          const Text(
+            "تعذر تحميل البيانات من السيرفر",
+            style: TextStyle(color: Colors.grey, fontFamily: 'Almarai'),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: _fetchAttendanceLogs,
+            child: const Text("إعادة المحاولة"),
+          ),
         ],
       ),
     );

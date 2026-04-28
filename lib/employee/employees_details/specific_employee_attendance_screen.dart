@@ -35,6 +35,7 @@ class AttendanceRecord {
         checkType: json['checkType'],
       );
 }
+
 class SpecificEmployeeAttendanceScreen extends StatefulWidget {
   final String employeeId;
   final String employeeName;
@@ -53,6 +54,7 @@ class SpecificEmployeeAttendanceScreen extends StatefulWidget {
 class _SpecificEmployeeAttendanceScreenState
     extends State<SpecificEmployeeAttendanceScreen> {
   bool _isLoading = true;
+  bool _hasError = false;
   Map<String, List<AttendanceRecord>> _groupedAttendance = {};
   List<String> _availableMonths = [];
   int _currentMonthIndex = 0;
@@ -65,75 +67,51 @@ class _SpecificEmployeeAttendanceScreenState
 
   DateTime? _parseDate(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) return null;
-    try {
-      return DateTime.parse(dateStr);
-    } catch (_) {}
-    try {
-      return DateFormat("M/d/yyyy").parse(dateStr);
-    } catch (_) {}
-    try {
-      return DateFormat("MM/dd/yyyy").parse(dateStr);
-    } catch (_) {}
-    try {
-      return DateFormat("M/dd/yyyy").parse(dateStr);
-    } catch (_) {}
+    try { return DateTime.parse(dateStr); } catch (_) {}
+    try { return DateFormat("M/d/yyyy").parse(dateStr); } catch (_) {}
+    try { return DateFormat("MM/dd/yyyy").parse(dateStr); } catch (_) {}
+    try { return DateFormat("M/dd/yyyy").parse(dateStr); } catch (_) {}
     return null;
   }
 
+  // ✅ السيرفر هو المصدر الوحيد - لا كاش محلي إطلاقاً
   Future<void> _fetchAttendanceLogs() async {
     if (!mounted) return;
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
 
     try {
-      List<AttendanceRecord> allRecords = [];
+      final url =
+          'https://nourelman.runasp.net/api/Locations/GetAll-employee-attendance-ByEmpId?EmpId=${widget.employeeId}';
+      final prefs = await SharedPreferences.getInstance();
+      final String token = prefs.getString('user_token') ?? '';
 
-      try {
-        final url =
-            'https://nourelman.runasp.net/api/Locations/GetAll-employee-attendance-ByEmpId?EmpId=${widget.employeeId}';
-        final prefs2 = await SharedPreferences.getInstance();
-        final String token2 = prefs2.getString('user_token') ?? '';
-        final response = await http.get(
-          Uri.parse(url),
-          headers: {
-            if (token2.isNotEmpty && token2 != 'no_token')
-              'Authorization': 'Bearer $token2',
-          },
-        );
-        if (response.statusCode == 200) {
-          final decoded = json.decode(response.body);
-          final List<dynamic> data = decoded['data'] ?? [];
-          for (var item in data) {
-            allRecords.add(AttendanceRecord.fromJson(item));
-          }
-        }
-      } catch (e) {
-        debugPrint("Server fetch error: $e");
-      }
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        final localKey = 'local_attendance_${widget.employeeId}';
-        final localJson = prefs.getString(localKey);
-        if (localJson != null) {
-          final List<dynamic> localList = jsonDecode(localJson);
-          for (var item in localList) {
-            allRecords.add(AttendanceRecord(
-              date: item['date'],
-              checkInTime: item['checkInTime'],
-              checkOutTime: item['checkOutTime'],
-              workingHours: item['workingHours'],
-              locationName: item['locationName'],
-              userName: item['userName'],
-              checkType: item['checkType'],
-            ));
-          }
-        }
-      } catch (e) {
-        debugPrint("Local fetch error: $e");
-      }
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          if (token.isNotEmpty && token != 'no_token')
+            'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 15));
 
-      _processData(allRecords);
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        final List<dynamic> data = decoded['data'] ?? [];
+        debugPrint("📡 Server returned ${data.length} records for employee ${widget.employeeId}");
+
+        final List<AttendanceRecord> records =
+        data.map((item) => AttendanceRecord.fromJson(item)).toList();
+
+        _processData(records);
+      } else {
+        debugPrint("❌ Server error: ${response.statusCode}");
+        setState(() => _hasError = true);
+      }
     } catch (e) {
-      debugPrint("Error: $e");
+      debugPrint("❌ Fetch error: $e");
+      setState(() => _hasError = true);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -144,6 +122,7 @@ class _SpecificEmployeeAttendanceScreenState
     rawData.where((r) => _parseDate(r.date) != null).toList();
     validData.sort((a, b) =>
         _parseDate(b.date)!.compareTo(_parseDate(a.date)!));
+
     Map<String, List<AttendanceRecord>> groups = {};
     for (var entry in validData) {
       final date = _parseDate(entry.date)!;
@@ -168,6 +147,8 @@ class _SpecificEmployeeAttendanceScreenState
         body: _isLoading
             ? const Center(
             child: CircularProgressIndicator(color: Color(0xFF1976D2)))
+            : _hasError
+            ? _buildErrorState()
             : _availableMonths.isEmpty
             ? _buildEmptyState()
             : Column(
@@ -344,6 +325,27 @@ class _SpecificEmployeeAttendanceScreenState
             fontSize: 16,
             fontWeight: FontWeight.bold,
             fontFamily: 'Almarai'),
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.cloud_off, size: 80, color: Colors.grey[300]),
+          const SizedBox(height: 16),
+          const Text(
+            "تعذر تحميل البيانات من السيرفر",
+            style: TextStyle(color: Colors.grey, fontFamily: 'Almarai'),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: _fetchAttendanceLogs,
+            child: const Text("إعادة المحاولة"),
+          ),
+        ],
       ),
     );
   }
