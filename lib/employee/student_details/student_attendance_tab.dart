@@ -52,7 +52,7 @@ class _StudentAttendanceTabState extends State<StudentAttendanceTab> {
 
   Future<void> _fetchAttendance() async {
     try {
-      final String url = 'https://nour-al-eman.runasp.net/api/Student/GetAttendaceByStudentId?id=${widget.studentId}';
+      final String url = 'https://nourelman.runasp.net/api/Student/GetAttendaceByStudentId?id=${widget.studentId}';
       final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {

@@ -42,7 +42,7 @@ class _LevelOneScreenState extends State<LevelOneScreen> {
     if (mounted) setState(() => isLoadingGroups = true);
     try {
       final response = await http.get(
-        Uri.parse('https://nour-al-eman.runasp.net/api/Group/Getall?levelid=${widget.levelId}'),
+        Uri.parse('https://nourelman.runasp.net/api/Group/Getall?levelid=${widget.levelId}'),
       );
       if (response.statusCode == 200 && mounted) {
         setState(() {
@@ -60,8 +60,8 @@ class _LevelOneScreenState extends State<LevelOneScreen> {
 
   Future<void> _loadData() async {
     try {
-      final locRes = await http.get(Uri.parse('https://nour-al-eman.runasp.net/api/Locations/Getall'));
-      final techRes = await http.get(Uri.parse('https://nour-al-eman.runasp.net/api/Employee/GetWithType?type=1'));
+      final locRes = await http.get(Uri.parse('https://nourelman.runasp.net/api/Locations/Getall'));
+      final techRes = await http.get(Uri.parse('https://nourelman.runasp.net/api/Employee/GetWithType?type=1'));
       if (mounted) {
         setState(() {
           locationsList = jsonDecode(locRes.body)['data'] ?? [];
@@ -130,7 +130,7 @@ class _LevelOneScreenState extends State<LevelOneScreen> {
     debugPrint("Add Group Payload: ${jsonEncode(payload)}");
 
     final response = await http.post(
-      Uri.parse('https://nour-al-eman.runasp.net/api/Group/Save'),
+      Uri.parse('https://nourelman.runasp.net/api/Group/Save'),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(payload),
     );
@@ -163,7 +163,7 @@ class _LevelOneScreenState extends State<LevelOneScreen> {
 
   Future<void> _updateLevelApi(String newName) async {
     final response = await http.put(
-      Uri.parse('https://nour-al-eman.runasp.net/api/Level/Update'),
+      Uri.parse('https://nourelman.runasp.net/api/Level/Update'),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"id": widget.levelId, "name": newName}),
     );
@@ -175,7 +175,7 @@ class _LevelOneScreenState extends State<LevelOneScreen> {
   Future<void> _deleteGroupApi(int id, String name) async {
     try {
       final response = await http.put(
-        Uri.parse('https://nour-al-eman.runasp.net/api/Group/Update'),
+        Uri.parse('https://nourelman.runasp.net/api/Group/Update'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "Id": id,

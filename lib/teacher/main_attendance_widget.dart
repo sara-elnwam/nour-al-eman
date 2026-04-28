@@ -20,6 +20,7 @@ class MainAttendanceScreen extends StatefulWidget {
 
 class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
   final LocalAuthentication auth = LocalAuthentication();
+
   String _currentLocationText = "جاري تحديد موقعك...";
   String _currentTime = "";
   String _checkType = "check-in";
@@ -61,7 +62,7 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
   Future<void> _fetchOffices() async {
     try {
       final response = await http
-          .get(Uri.parse('https://nour-al-eman.runasp.net/api/Locations/Getall'));
+          .get(Uri.parse('https://nourelman.runasp.net/api/Locations/Getall'));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() => _apiOffices = data['data'] ?? data);
@@ -70,6 +71,7 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
       _showSnackBar("تعذر الاتصال بالسيرفر", Colors.red);
     }
   }
+
   String? _normalizeDate(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) return null;
     try {
@@ -84,6 +86,8 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
     return null;
   }
 
+  // ✅ FIX: السيرفر هو المصدر الأساسي لحالة الحضور
+  // الكاش المحلي fallback فقط لو السيرفر مش متاح
   Future<void> _checkCurrentStatus() async {
     setState(() => _isLoadingStatus = true);
     try {
@@ -93,59 +97,75 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
 
       final String todayDate =
       intl.DateFormat('yyyy-MM-dd').format(DateTime.now());
-      bool foundTodayLocally = false;
 
-      final localKey = 'local_attendance_$empId';
-      final localJson = prefs.getString(localKey);
-      if (localJson != null) {
-        final List<dynamic> localRecords = jsonDecode(localJson);
-        for (var rec in localRecords) {
-          final normalized = _normalizeDate(rec['date']?.toString());
-          if (normalized == todayDate) {
-            final bool hasCheckOut = (rec['checkOutTime'] != null &&
-                rec['checkOutTime'].toString().isNotEmpty) ||
-                rec['checkType'] == 'check-out';
-            if (mounted) {
-              setState(() => _checkType = hasCheckOut ? "check-in" : "check-out");
-            }
-            foundTodayLocally = true;
-            break;
-          }
-        }
-      }
-
-      if (!foundTodayLocally) {
-        try {
-          final String userGuid = prefs.getString('user_guid') ?? '';
-          if (userGuid.isEmpty) return;
-          final String tokenStatus = prefs.getString('user_token') ?? '';
+      // 1. جرب السيرفر أولاً
+      bool serverSuccess = false;
+      try {
+        final String userGuid = prefs.getString('user_guid') ?? '';
+        final String tokenStatus = prefs.getString('user_token') ?? '';
+        if (userGuid.isNotEmpty) {
           final url =
-              'https://nour-al-eman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=$userGuid';
+              'https://nourelman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=$userGuid';
           final response = await http.get(
             Uri.parse(url),
             headers: {
               if (tokenStatus.isNotEmpty && tokenStatus != 'no_token')
                 'Authorization': 'Bearer $tokenStatus',
             },
-          );
+          ).timeout(const Duration(seconds: 10));
+
           if (response.statusCode == 200) {
+            serverSuccess = true;
             final data = json.decode(response.body);
             final List<dynamic> logs = data['data'] ?? [];
+
+            // احفظ داتا السيرفر في الكاش لتحديثه
+            await prefs.setString('local_attendance_$empId', jsonEncode(logs));
+
+            // شوف آخر حالة لليوم ده
+            String? lastStatusToday;
             for (var log in logs) {
               final String? normalized = _normalizeDate(log['date']?.toString());
               if (normalized == todayDate) {
                 final bool hasCheckOut = log['checkOutTime'] != null &&
                     log['checkOutTime'].toString().isNotEmpty &&
                     log['checkOutTime'].toString() != "--";
-                if (mounted) {
-                  setState(() => _checkType = hasCheckOut ? "check-in" : "check-out");
-                }
-                break;
+                lastStatusToday = hasCheckOut ? "check-in" : "check-out";
+                // لا break هنا - نكمل لآخر سجل لليوم ده
               }
             }
+            if (lastStatusToday != null && mounted) {
+              setState(() => _checkType = lastStatusToday!);
+            }
           }
-        } catch (e) {
-          debugPrint("Server status check error: $e");
+        }
+      } catch (e) {
+        debugPrint("Server status check error: $e");
+      }
+
+      // 2. Fallback: لو السيرفر فشل، خذ من الكاش المحلي
+      if (!serverSuccess) {
+        final localKey = 'local_attendance_$empId';
+        final localJson = prefs.getString(localKey);
+        if (localJson != null) {
+          try {
+            final List<dynamic> localRecords = jsonDecode(localJson);
+            String? lastStatusToday;
+            for (var rec in localRecords) {
+              final normalized = _normalizeDate(rec['date']?.toString());
+              if (normalized == todayDate) {
+                final bool hasCheckOut = (rec['checkOutTime'] != null &&
+                    rec['checkOutTime'].toString().isNotEmpty) ||
+                    rec['checkType'] == 'check-out';
+                lastStatusToday = hasCheckOut ? "check-in" : "check-out";
+              }
+            }
+            if (lastStatusToday != null && mounted) {
+              setState(() => _checkType = lastStatusToday!);
+            }
+          } catch (e) {
+            debugPrint("Local cache read error: $e");
+          }
         }
       }
     } catch (e) {
@@ -220,7 +240,6 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
           centerLat,
           centerLng);
       result = distToCenter <= allowedRadius;
-
     }
 
     setState(() {
@@ -261,16 +280,8 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
     setState(() => _isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
-      String rawId = prefs.getString('user_id') ?? "";
       final String? userGuid = prefs.getString('user_guid');
-
-      if (rawId.isEmpty || rawId == "0") {
-        final loginDataStr2 = prefs.getString('loginData');
-        if (loginDataStr2 != null) {
-          final ld = jsonDecode(loginDataStr2);
-          rawId = ld['userId']?.toString() ?? ld['id']?.toString() ?? "";
-        }
-      }
+      final String token = prefs.getString('user_token') ?? '';
 
       if (userGuid == null || userGuid.isEmpty) {
         _showSnackBar("خطأ: كود المستخدم غير صالح", Colors.red);
@@ -301,57 +312,52 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
         },
       };
 
-      debugPrint("ATTENDANCE REQUEST: ${json.encode(attendanceData)}");
-
-      final String token = prefs.getString('user_token') ?? '';
       final bool hasToken = token.isNotEmpty && token != 'no_token';
-      debugPrint(' Token exists: \$hasToken');
 
       final response = await http.post(
-        Uri.parse(
-            'https://nour-al-eman.runasp.net/api/Locations/employee-attendance'),
+        Uri.parse('https://nourelman.runasp.net/api/Locations/employee-attendance'),
         headers: {
           'Content-Type': 'application/json',
-          if (hasToken) 'Authorization': 'Bearer \$token',
+          if (hasToken) 'Authorization': 'Bearer $token',
         },
         body: json.encode(attendanceData),
-      );
-
-      debugPrint("ATTENDANCE STATUS: ${response.statusCode}");
-      debugPrint("ATTENDANCE BODY: ${response.body}");
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = json.decode(response.body);
-        final dynamic error = responseData['error'];
-        final dynamic dataVal = responseData['data'];
-        final bool hasServerError = (error != null &&
-            error.toString().isNotEmpty &&
-            error.toString() != "null") ||
-            (dataVal is String &&
-                (dataVal.toString().toLowerCase().contains('conflict') ||
-                    dataVal.toString().toLowerCase().contains('does not') ||
-                    dataVal.toString().toLowerCase().contains('invalid') ||
-                    dataVal.toString().toLowerCase().contains('error')));
+        if (responseData['error'] == null ||
+            responseData['error'].toString() == "null" ||
+            responseData['error'].toString().isEmpty) {
+          _showSnackBar(
+            _checkType == "check-in"
+                ? "✅ تم تسجيل الحضور بنجاح"
+                : "✅ تم تسجيل الانصراف بنجاح",
+            Colors.green,
+          );
+          _flipCheckType();
+          await prefs.setString('last_check_type', _checkType);
 
-        if (hasServerError) {
-          await _saveLocally(prefs, rawId);
-          _showSnackBar("⚠️ تم الحفظ محلياً - خطأ في السيرفر", Colors.orange);
-          return;
+          // ✅ FIX: بعد البصم الناجح، امسح الكاش القديم فوراً
+          // السيرفر هيبعت الداتا الصح في الـ _checkCurrentStatus الجاية
+          final String empId = prefs.getString('user_id') ?? '';
+          if (empId.isNotEmpty) {
+            await prefs.remove('local_attendance_$empId');
+          }
+        } else {
+          _showSnackBar("خطأ: ${responseData['error']}", Colors.red);
         }
-        await _saveLocally(prefs, rawId);
-        _showSnackBar(
-          _checkType == "check-in"
-              ? "✅ تم تسجيل الحضور بنجاح"
-              : "✅ تم تسجيل الانصراف بنجاح",
-          Colors.green,
-        );
-        _flipCheckType();
       } else {
-        _showSnackBar("فشل التسجيل (${response.statusCode})", Colors.red);
+        _showSnackBar("فشل في الاتصال بالسيرفر (${response.statusCode})", Colors.red);
       }
     } catch (e) {
       debugPrint("EXCEPTION: $e");
-      _showSnackBar("حدث خطأ تقني: $e", Colors.red);
+      // ✅ FIX: في حالة فشل الإرسال للسيرفر، احفظ محلياً كـ fallback فقط
+      final prefs = await SharedPreferences.getInstance();
+      final String empId = prefs.getString('user_id') ?? '';
+      if (empId.isNotEmpty) {
+        await _saveLocally(prefs, empId);
+      }
+      _showSnackBar("لا يوجد اتصال بالإنترنت، تم الحفظ محلياً مؤقتاً", Colors.orange);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -388,8 +394,9 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
         }
       }
 
+      // ✅ FIX: key واحد بس للـ user ده، مش multiple keys
       final localKey = 'local_attendance_$effectiveId';
-      debugPrint("💾 Saving attendance with key: $localKey");
+      debugPrint("💾 Saving attendance locally (offline fallback) with key: $localKey");
       final existing = prefs.getString(localKey);
       List<dynamic> records = existing != null ? jsonDecode(existing) : [];
 
@@ -398,16 +405,27 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
       final timeStr =
           '${now.hour > 12 ? now.hour - 12 : now.hour == 0 ? 12 : now.hour}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')} ${now.hour >= 12 ? 'PM' : 'AM'}';
       final todayNormalized = intl.DateFormat('yyyy-MM-dd').format(now);
+
       if (_checkType == 'check-in') {
-        records.insert(0, {
-          'userName': userName,
-          'checkType': 'check-in',
-          'locationName': _selectedLocationName ?? "",
-          'date': todayStr,
-          'checkInTime': timeStr,
-          'checkOutTime': null,
-          'workingHours': null,
+        final bool alreadyHasOpenCheckIn = records.any((r) {
+          final recNormalized = _normalizeDate(r['date']?.toString());
+          return recNormalized == todayNormalized &&
+              r['checkInTime'] != null &&
+              r['checkOutTime'] == null &&
+              r['checkType'] == 'check-in';
         });
+
+        if (!alreadyHasOpenCheckIn) {
+          records.insert(0, {
+            'userName': userName,
+            'checkType': 'check-in',
+            'locationName': _selectedLocationName ?? "",
+            'date': todayStr,
+            'checkInTime': timeStr,
+            'checkOutTime': null,
+            'workingHours': null,
+          });
+        }
       } else {
         int openIdx = records.indexWhere((r) {
           final recNormalized = _normalizeDate(r['date']?.toString());
@@ -418,6 +436,7 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
 
         if (openIdx >= 0) {
           records[openIdx]['checkOutTime'] = timeStr;
+          records[openIdx]['checkType'] = 'check-out';
           records[openIdx]['workingHours'] =
               _calcWorkingHours(records[openIdx]['checkInTime'], timeStr);
         } else {
@@ -432,12 +451,14 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
           });
         }
       }
+
       if (records.length > 200) records = records.sublist(0, 200);
       await prefs.setString(localKey, jsonEncode(records));
     } catch (e) {
       debugPrint('Local save error: $e');
     }
   }
+
   String? _calcWorkingHours(String? inTimeStr, String outTimeStr) {
     try {
       if (inTimeStr == null) return null;
@@ -465,6 +486,7 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
       return null;
     }
   }
+
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message,

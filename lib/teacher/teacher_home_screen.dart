@@ -96,7 +96,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
 
       if (numericId != null && numericId.isNotEmpty && numericId != "null" && numericId != "0") {
         final response = await http.get(
-            Uri.parse('https://nour-al-eman.runasp.net/api/Employee/GetById?id=$numericId')
+            Uri.parse('https://nourelman.runasp.net/api/Employee/GetById?id=$numericId')
         );
         debugPrint("📥 Status: ${response.statusCode} | Body: ${response.body}");
         if (response.statusCode == 200) {
@@ -141,7 +141,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
         return;
       }
 
-      final response = await http.get(Uri.parse('https://nour-al-eman.runasp.net/api/Employee/GetSessionRecord?emp_id=$id'));
+      final response = await http.get(Uri.parse('https://nourelman.runasp.net/api/Employee/GetSessionRecord?emp_id=$id'));
       if (response.statusCode == 200) {
         setState(() => _sessions = sessionRecordFromJson(response.body));
       }

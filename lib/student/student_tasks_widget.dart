@@ -74,7 +74,7 @@ class StudentTasksWidget extends StatelessWidget {
           IconButton(
             onPressed: () async {
               if (item.url != null) {
-                final fullUrl = "https://nour-al-eman.runasp.net${item.url}";
+                final fullUrl = "https://nourelman.runasp.net${item.url}";
                 if (await canLaunchUrl(Uri.parse(fullUrl))) {
                   await launchUrl(Uri.parse(fullUrl));
                 }

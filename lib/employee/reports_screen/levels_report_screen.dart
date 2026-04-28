@@ -23,9 +23,9 @@ class _LevelsReportScreenState extends State<LevelsReportScreen> {
 
   Future<void> _loadData() async {
     try {
-      final resL = await http.get(Uri.parse("https://nour-al-eman.runasp.net/api/Level/Getall")
+      final resL = await http.get(Uri.parse("https://nourelman.runasp.net/api/Level/Getall")
       );
-      final resS = await http.get(Uri.parse("https://nour-al-eman.runasp.net/api/Student/Getall"));
+      final resS = await http.get(Uri.parse("https://nourelman.runasp.net/api/Student/Getall"));
       setState(() {
         levels = (json.decode(utf8.decode(resL.bodyBytes))['data'] as List).map((e) => LevelModel.fromJson(e)).toList();
         allStudents = (json.decode(utf8.decode(resS.bodyBytes))['data'] as List).map((e) => StudentModel.fromJson(e)).toList();

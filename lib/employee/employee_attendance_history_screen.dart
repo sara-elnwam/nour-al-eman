@@ -36,12 +36,8 @@ class _AttendanceHistoryScreenState
     return null;
   }
 
-  String _normalizeDate(String? dateStr) {
-    final parsed = _parseServerDate(dateStr);
-    if (parsed == null) return dateStr ?? '';
-    return DateFormat('yyyy-MM-dd').format(parsed);
-  }
-
+  // ✅ FIX: السيرفر هو المصدر الوحيد للحقيقة
+  // الكاش المحلي = fallback فقط لو السيرفر مش متاح
   Future<void> _fetchAttendanceLogs() async {
     setState(() => _isLoading = true);
 
@@ -53,47 +49,22 @@ class _AttendanceHistoryScreenState
         _showError("لم يتم العثور على بيانات المستخدم");
         return;
       }
-      final allKeys = prefs.getKeys();
-      final attendanceKeys = allKeys.where((k) => k.startsWith('local_attendance')).toList();
-      final List<AttendanceData> allRecords = [];
-      final Set<String> addedKeys = {};
-      final possibleKeys = {'local_attendance_$userId', ...attendanceKeys};
-      for (final localKey in possibleKeys) {
-        final String? localJson = prefs.getString(localKey);
-        if (localJson == null) continue;
-        try {
-          final List<dynamic> localList = jsonDecode(localJson);
-          for (var item in localList) {
-            final normDate = _normalizeDate(item['date']?.toString());
-            final inTime = item['checkInTime']?.toString() ?? '';
-            final uniqueKey = '$normDate|$inTime';
-            if (normDate.isEmpty || addedKeys.contains(uniqueKey)) continue;
-            addedKeys.add(uniqueKey);
-            allRecords.add(AttendanceData(
-              userName: item['userName'] ?? item['username'],
-              checkType: item['checkType'],
-              locationName: item['locationName'],
-              date: item['date'],
-              checkInTime: item['checkInTime'],
-              checkOutTime: item['checkOutTime'],
-              workingHours: item['workingHours'],
-            ));
-          }
-        } catch (e) {
-        }
-      }
 
+      List<AttendanceData> records = [];
+      bool serverSuccess = false;
+
+      // 1. السيرفر أولاً
       try {
-        final String token2 = prefs.getString('user_token') ?? '';
+        final String token = prefs.getString('user_token') ?? '';
         final url =
-            "https://nour-al-eman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=${prefs.getString('user_guid') ?? ''}";
+            "https://nourelman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=${prefs.getString('user_guid') ?? ''}";
         final response = await http.get(
           Uri.parse(url),
           headers: {
-            if (token2.isNotEmpty && token2 != 'no_token')
-              'Authorization': 'Bearer $token2',
+            if (token.isNotEmpty && token != 'no_token')
+              'Authorization': 'Bearer $token',
           },
-        );
+        ).timeout(const Duration(seconds: 15));
 
         if (response.statusCode == 200) {
           final decoded = jsonDecode(response.body);
@@ -101,12 +72,7 @@ class _AttendanceHistoryScreenState
           debugPrint("📡 Server returned ${data.length} records");
 
           for (var item in data) {
-            final normDate = _normalizeDate(item['date']?.toString());
-            final inTime = item['checkInTime']?.toString() ?? '';
-            final uniqueKey = '$normDate|$inTime';
-            if (normDate.isEmpty || addedKeys.contains(uniqueKey)) continue;
-            addedKeys.add(uniqueKey);
-            allRecords.add(AttendanceData(
+            records.add(AttendanceData(
               userName: item['userName'] ?? item['username'],
               checkType: item['checkType'],
               locationName: item['locationName'],
@@ -116,13 +82,46 @@ class _AttendanceHistoryScreenState
               workingHours: item['workingHours'],
             ));
           }
+
+          serverSuccess = true;
+
+          // احفظ النسخة الأخيرة في الكاش لتحديثه للـ fallback الجاي
+          await prefs.setString(
+            'local_attendance_$userId',
+            jsonEncode(data),
+          );
         }
       } catch (e) {
         debugPrint('Server fetch error: $e');
       }
 
-      debugPrint(" Total records to display: ${allRecords.length}");
-      _processData(allRecords);
+      // 2. Fallback: لو السيرفر فشل، خذ من الكاش المحلي فقط
+      if (!serverSuccess) {
+        debugPrint("⚠️ Server unavailable, falling back to local cache");
+        final String? localJson = prefs.getString('local_attendance_$userId');
+        if (localJson != null) {
+          try {
+            final List<dynamic> localList = jsonDecode(localJson);
+            for (var item in localList) {
+              records.add(AttendanceData(
+                userName: item['userName'] ?? item['username'],
+                checkType: item['checkType'],
+                locationName: item['locationName'],
+                date: item['date'],
+                checkInTime: item['checkInTime'],
+                checkOutTime: item['checkOutTime'],
+                workingHours: item['workingHours'],
+              ));
+            }
+            debugPrint("📦 Loaded ${records.length} records from local cache");
+          } catch (e) {
+            debugPrint("Local cache read error: $e");
+          }
+        }
+      }
+
+      debugPrint("✅ Total records to display: ${records.length}");
+      _processData(records);
 
     } catch (e) {
       debugPrint("Error: $e");

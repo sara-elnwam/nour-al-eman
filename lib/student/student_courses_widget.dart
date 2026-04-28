@@ -18,7 +18,7 @@ class StudentCoursesWidget extends StatefulWidget {
 }
 
 class _StudentCoursesWidgetState extends State<StudentCoursesWidget> {
-  static const String _baseUrl = "https://nour-al-eman.runasp.net";
+  static const String _baseUrl = "https://nourelman.runasp.net";
 
   @override
   void initState() {

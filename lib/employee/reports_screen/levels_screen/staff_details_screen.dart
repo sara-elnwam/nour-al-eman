@@ -47,7 +47,7 @@ class _StaffDetailsScreenState extends State<StaffDetailsScreen> with SingleTick
     try {
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
-      final String url = 'https://nour-al-eman.runasp.net/api/Employee/GetById?id=${widget.staffId}';
+      final String url = 'https://nourelman.runasp.net/api/Employee/GetById?id=${widget.staffId}';
       print("Requesting URL: $url");
 
       final response = await http.get(

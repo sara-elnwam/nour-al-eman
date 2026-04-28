@@ -46,7 +46,7 @@ class _StaffDetailsScreenState extends State<StaffDetailsScreen> with SingleTick
       String? token = prefs.getString('token');
 
       final response = await http.get(
-        Uri.parse('https://nour-al-eman.runasp.net/api/Employee/GetById?id=${widget.staffId}'),
+        Uri.parse('https://nourelman.runasp.net/api/Employee/GetById?id=${widget.staffId}'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',

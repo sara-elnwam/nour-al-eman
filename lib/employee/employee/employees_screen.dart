@@ -40,7 +40,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
 
-      final url = Uri.parse('https://nour-al-eman.runasp.net/api/Employee/GetWithType/?type=1')
+      final url = Uri.parse('https://nourelman.runasp.net/api/Employee/GetWithType/?type=1')
       ;
 
       final response = await http.get(url, headers: {
@@ -79,7 +79,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('token');
-      final url =Uri.parse('https://nour-al-eman.runasp.net/api/Account/DeActivate?id=$id&type=1');
+      final url =Uri.parse('https://nourelman.runasp.net/api/Account/DeActivate?id=$id&type=1');
       final response = await http.post(
         url,
         headers: {
@@ -108,7 +108,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
       String? token = prefs.getString('token');
 
       final response = await http.post(
-        Uri.parse('https://nour-al-eman.runasp.net/api/Student/ResetPassword')
+        Uri.parse('https://nourelman.runasp.net/api/Student/ResetPassword')
         ,
         headers: {
           'Authorization': 'Bearer $token',

@@ -26,7 +26,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     });
   }
   Future<void> fetchStaffRoles() async {
-    final url = Uri.parse('https://nour-al-eman.runasp.net/api/EmployeeType/GetAll');
+    final url = Uri.parse('https://nourelman.runasp.net/api/EmployeeType/GetAll');
     try {
       final response = await http.get(url).timeout(const Duration(seconds: 20));
       if (response.statusCode == 200) {
@@ -46,7 +46,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     }
   }
   Future<void> deleteRole(int id) async {
-    final url = Uri.parse('https://nour-al-eman.runasp.net/api/EmployeeType/Delete');
+    final url = Uri.parse('https://nourelman.runasp.net/api/EmployeeType/Delete');
     try {
       final response = await http.delete(
         url,
@@ -77,7 +77,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     }
   }
   Future<void> addRole(String name) async {
-    final url =Uri.parse('https://nour-al-eman.runasp.net/api/EmployeeType/Add');
+    final url =Uri.parse('https://nourelman.runasp.net/api/EmployeeType/Add');
     try {
       final response = await http.post(
         url,
@@ -92,7 +92,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     }
   }
   Future<void> updateRole(int id, String newName) async {
-    final url = Uri.parse('https://nour-al-eman.runasp.net/api/EmployeeType/Update');
+    final url = Uri.parse('https://nourelman.runasp.net/api/EmployeeType/Update');
     try {
       final response = await http.put(
         url,
