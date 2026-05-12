@@ -745,44 +745,53 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
 
   Widget _buildStudentTasksTab() {
     if (_isTasksLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
     }
-    final bool isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
-    // كل الأبحاث (typeId=2) اللي لم يُرفع عليها بعد
-    final pendingResearch = studentTasksList
-        .where((t) => t['typeId'] == 2 && (t['studentExams'] as List? ?? []).isEmpty)
-        .toList();
+    // 1. تصفية الأبحاث (Type 2) التي لم يتم رفع ملف لها بعد
+    final pendingResearch = studentTasksList.where((t) {
+      final exams = t['studentExams'] as List? ?? [];
+      return t['typeId'] == 2 && exams.isEmpty;
+    }).toList();
 
-    // أحدث سؤال أسبوعي (typeId=1)
+    // 2. تصفية الأسئلة الأسبوعية (Type 1)
     final allWeekly = studentTasksList.where((t) => t['typeId'] == 1).toList();
-    final latestWeekly = allWeekly.isNotEmpty
-        ? allWeekly.reduce((a, b) => (a['id'] ?? 0) > (b['id'] ?? 0) ? a : b)
-        : null;
-    final bool latestWeeklyAnswered = latestWeekly == null
-        || (latestWeekly['studentExams'] as List? ?? []).isNotEmpty;
+
+    // الحصول على آخر سؤال أسبوعي نزل (كما في كود React)
+    final latestWeekly = allWeekly.isNotEmpty ? allWeekly.last : null;
+
+    // التأكد إذا كان الطالب أجاب على هذا السؤال (قائمة التقييمات ليست فارغة)
+    final bool isWeeklyAnswered = latestWeekly != null &&
+        (latestWeekly['studentExams'] as List? ?? []).isNotEmpty;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildSectionLabel("الأبحاث", Icons.upload_file_outlined),
+          // --- قسم الأبحاث ---
+          _buildSectionLabel("الأبحاث المطلوبة", Icons.upload_file_outlined),
           const SizedBox(height: 10),
           if (pendingResearch.isEmpty)
-            _buildNoUploadsCard()
+            _buildNoUploadsCard() // الكارت اللي بيقول مفيش أبحاث حالياً
           else
             ...pendingResearch.map((task) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: _buildResearchTaskCard(task as Map<String, dynamic>),
             )),
-          const SizedBox(height: 24),
+
+          const SizedBox(height: 30),
+
+          // --- قسم السؤال الأسبوعي ---
           _buildSectionLabel("السؤال الأسبوعي", Icons.help_outline),
           const SizedBox(height: 10),
-          if (latestWeekly == null || latestWeeklyAnswered)
-            _buildSuccessMessageCard()
+
+          if (latestWeekly == null)
+            const Center(child: Text("لم يتم رفع أي أسئلة بعد"))
+          else if (isWeeklyAnswered)
+            _buildSuccessMessageCard() // الكارت الأخضر (لقد أجبت بنجاح)
           else
-            _buildTaskAnswerCard(latestWeekly, isArabic ? TextAlign.right : TextAlign.left),
+            _buildTaskAnswerCard(latestWeekly, TextAlign.right),
         ],
       ),
     );

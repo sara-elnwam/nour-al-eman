@@ -26,7 +26,6 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen>
   String _currentTime = "";
   String _checkType = "check-in";
   late Timer _timer;
-  Timer? _pollingTimer;
   Position? _myPosition;
   Map<String, dynamic>? _selectedOffice;
   String? _selectedLocationName;
@@ -38,6 +37,7 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen>
   @override
   void initState() {
     super.initState();
+    _checkUserGuid();
     WidgetsBinding.instance.addObserver(this);
     _updateTime();
     _timer = Timer.periodic(
@@ -48,10 +48,15 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen>
     });
   }
 
+  Future<void> _checkUserGuid() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_guid');
+    debugPrint("👤 Stored user_guid: $userId");
+  }
+
   @override
   void dispose() {
     _timer.cancel();
-    _pollingTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -106,18 +111,26 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen>
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String userId = prefs.getString('user_guid') ?? '';
+      final String? userId = prefs.getString('user_guid');
       final String token = prefs.getString('user_token') ?? '';
-      final int locationId = int.parse(_selectedOffice!['id'].toString());
 
-      if (userId.isEmpty) {
-        debugPrint("❌ userId (guid) is empty!");
+      if (userId == null || userId.isEmpty || userId == 'null') {
+        debugPrint("❌ userId غير صالح: $userId");
         if (!silent && mounted) setState(() => _isLoadingStatus = false);
         return;
       }
 
-      final url =
-          'https://nourelman.runasp.net/api/Locations/get-employee-attendance-status?userId=$userId&locationId=$locationId';
+      final int locationId = int.tryParse(_selectedOffice!['id'].toString()) ?? 0;
+      if (locationId == 0) {
+        debugPrint("❌ locationId غير صالح");
+        if (!silent && mounted) setState(() => _isLoadingStatus = false);
+        return;
+      }
+
+      // ✅ استخدم userId و locId (بحرف i صغير)
+      final url = 'https://nourelman.runasp.net/api/Locations/get-employee-attendance-status?userId=$userId&locId=$locationId';
+
+      debugPrint("🌐 Calling API: $url");
 
       final response = await http.get(
         Uri.parse(url),
@@ -127,45 +140,42 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen>
         },
       ).timeout(const Duration(seconds: 10));
 
-      // ✅ نطبع الـ raw body دايماً عشان نشوف السيرفر بيرجع إيه بالظبط
+      debugPrint("📦 Status Code: ${response.statusCode}");
       debugPrint("📦 RAW BODY: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
-        // ✅ نجيب checkType من كل الأماكن المحتملة
-        final rawData = data['data'];
-        final rawCheckType = data['checkType'];
-
-        debugPrint("🔍 data['data'] = $rawData  |  data['checkType'] = $rawCheckType");
-
+        // ✅ المفتاح هو: checkType موجود داخل data['data']
         String checkTypeValue = '';
 
-        // ✅ لو data هو Map فيه checkType جوه (بعض APIs بترجع هيكل nested)
-        if (rawData is Map && rawData.containsKey('checkType')) {
-          checkTypeValue = (rawData['checkType'] ?? '').toString().trim();
+        if (data['data'] != null && data['data'] is Map) {
+          final innerData = data['data'] as Map;
+          if (innerData['checkType'] != null) {
+            checkTypeValue = innerData['checkType'].toString().trim();
+          }
         }
-        // ✅ لو data هو string مباشرة
-        else if (rawData is String) {
-          checkTypeValue = rawData.trim();
+
+        // لو لسه مفيش، جرب data['data'] لو كان String
+        if (checkTypeValue.isEmpty && data['data'] != null && data['data'] is String) {
+          checkTypeValue = data['data'].toString().trim();
         }
-        // ✅ لو checkType في أعلى الـ response مباشرة
-        else if (rawCheckType != null) {
-          checkTypeValue = rawCheckType.toString().trim();
+
+        // لو لسه مفيش، جرب data نفسها لو كان String
+        if (checkTypeValue.isEmpty && data is String) {
+          checkTypeValue = data.trim();
         }
 
         debugPrint("✅ checkTypeValue final = '$checkTypeValue'");
 
         if (mounted) {
           String newCheckType;
+          // ✅ المنطق: آخر عملية كانت check-in يبقى الزرار check-out والعكس
           if (checkTypeValue == 'check-in') {
-            // ✅ آخر عملية كانت check-in → الزرار يبقى check-out
             newCheckType = 'check-out';
           } else if (checkTypeValue == 'check-out') {
-            // ✅ آخر عملية كانت check-out → الزرار يبقى check-in
             newCheckType = 'check-in';
           } else {
-            // ✅ مفيش بيانات (null أو فاضي) → مفيش بصمة اليوم → check-in
             newCheckType = 'check-in';
           }
 
@@ -175,7 +185,8 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen>
           }
         }
       } else {
-        debugPrint("❌ Non-200: ${response.statusCode} | ${response.body}");
+        debugPrint("❌ Non-200 response: ${response.statusCode}");
+        debugPrint("❌ Response body: ${response.body}");
       }
     } catch (e) {
       debugPrint("❌ Status check error: $e");
@@ -183,17 +194,6 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen>
       if (!silent && mounted) setState(() => _isLoadingStatus = false);
     }
   }
-
-  // ✅ polling كل 3 ثواني في الخلفية — شبه real-time
-  void _startPolling() {
-    _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (_) {
-      if (_selectedOffice != null && mounted) {
-        _checkCurrentStatus(silent: true);
-      }
-    });
-  }
-
   Future<void> _initLocation() async {
     try {
       LocationPermission permission = await Geolocator.checkPermission();
@@ -268,12 +268,10 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen>
     });
 
     if (!_isInRange) {
-      _pollingTimer?.cancel();
       _showSnackBar("أنت خارج النطاق لـ $_selectedLocationName", Colors.red);
     } else {
       _showSnackBar("أنت داخل نطاق $_selectedLocationName ✅", Colors.green);
-      _checkCurrentStatus();  // أول call بـ spinner
-      _startPolling();        // polling صامت كل 3 ثواني
+      _checkCurrentStatus();
     }
   }
 
@@ -341,18 +339,20 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen>
         },
       };
 
+      debugPrint("📤 Sending attendance: ${json.encode(attendanceData)}");
+
       final response = await http
           .post(
-        Uri.parse(
-            'https://nourelman.runasp.net/api/Locations/employee-attendance'),
+        Uri.parse('https://nourelman.runasp.net/api/Locations/employee-attendance'),
         headers: {
           'Content-Type': 'application/json',
           if (token.isNotEmpty && token != 'no_token')
             'Authorization': 'Bearer $token',
         },
         body: json.encode(attendanceData),
-      )
-          .timeout(const Duration(seconds: 15));
+      ).timeout(const Duration(seconds: 15));
+
+      debugPrint("📦 Attendance response: ${response.statusCode} - ${response.body}");
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         _showSnackBar(
@@ -361,23 +361,20 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen>
               : "✅ تم تسجيل الانصراف بنجاح",
           Colors.green,
         );
-        if (mounted) {
-          setState(() {
-            _checkType =
-            (_checkType == "check-in") ? "check-out" : "check-in";
-          });
-        }
+
+        // ✅ بعد تسجيل العملية، جيب الحالة الجديدة
+        await _checkCurrentStatus();
+
       } else {
-        _showSnackBar(
-            "فشل في تسجيل العملية (${response.statusCode})", Colors.red);
+        _showSnackBar("فشل في تسجيل العملية (${response.statusCode})", Colors.red);
       }
     } catch (e) {
+      debugPrint("❌ Send attendance error: $e");
       _showSnackBar("لا يوجد اتصال بالإنترنت", Colors.red);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message,
@@ -396,10 +393,11 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen>
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
-            title: const Text("  "),
-            backgroundColor: Colors.white,
-            elevation: 0,
-            centerTitle: true),
+          title: const Text("  "),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: true,
+        ),
         body: _isLoadingStatus
             ? const Center(
             child: CircularProgressIndicator(color: kActiveBlue))
