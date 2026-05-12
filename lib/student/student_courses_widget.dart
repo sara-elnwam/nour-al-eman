@@ -59,26 +59,52 @@ class _StudentCoursesWidgetState extends State<StudentCoursesWidget> {
       _showSnackBar("بيانات الملف غير مكتملة");
       return;
     }
-    debugPrint(" [DOWNLOAD START] جاري معالجة المهمة رقم: $elementId");
+
+    // ===== DEBUG: طباعة بيانات التحميل =====
+    debugPrint("⬇️ ====== DOWNLOAD DEBUG ======");
+    debugPrint("⬇️ Course ID: $elementId");
+    debugPrint("⬇️ Course Name: ${course['name']}");
+    debugPrint("⬇️ Course URL field: ${course['url']}");
+    debugPrint("⬇️ Platform: ${Platform.operatingSystem}");
+
     if (Platform.isAndroid) {
-      await Permission.notification.request();
+      final notifStatus = await Permission.notification.request();
+      debugPrint("⬇️ Notification permission: $notifStatus");
+      final storageStatus = await Permission.storage.request();
+      debugPrint("⬇️ Storage permission: $storageStatus");
     }
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final String? token = prefs.getString('user_token');
+      debugPrint("⬇️ Token: ${token != null ? token.substring(0, 20) + '...' : 'NULL ❌'}");
 
-      final String downloadUrl = "$_baseUrl/api/StudentCources/DownloadLatest?id=$elementId";
+      // DownloadLatest بيرجع 404 — نحمل مباشرة من الـ url في البيانات
+      final String? courseUrl = course['url']?.toString();
+      if (courseUrl == null || courseUrl.isEmpty) {
+        debugPrint("❌ DOWNLOAD FAILED: course url is null");
+        _showSnackBar("الملف غير متاح للتحميل");
+        return;
+      }
+      final String downloadUrl = "$_baseUrl$courseUrl";
+      debugPrint("⬇️ Download URL (direct): $downloadUrl");
 
       final String courseName = (course['name'] ?? 'file')
           .toString()
           .replaceAll(RegExp(r'[^\u0600-\u06FF\w\s]+'), '_')
           .replaceAll(' ', '_');
-      final String fileName = "${courseName}_$elementId.png";
+
+      // استخدم الامتداد الصح من الـ url بدل ما يبقى دايماً .png
+      final String ext = _getExtension(course['url']?.toString());
+      final String fileName = "${courseName}_$elementId.$ext";
+      debugPrint("⬇️ File name: $fileName | Extension: $ext");
+
       String? savedPath;
       if (Platform.isAndroid) {
         savedPath = "/storage/emulated/0/Download";
         final dir = Directory(savedPath);
         if (!await dir.exists()) {
+          debugPrint("⬇️ Download folder not found, using external storage");
           final extDir = await getExternalStorageDirectory();
           savedPath = extDir?.path;
         }
@@ -86,10 +112,14 @@ class _StudentCoursesWidgetState extends State<StudentCoursesWidget> {
         savedPath = (await getApplicationDocumentsDirectory()).path;
       }
 
+      debugPrint("⬇️ Save path: $savedPath");
+
       if (savedPath == null) {
+        debugPrint("❌ DOWNLOAD FAILED: savedPath is null");
         _showSnackBar("تعذر تحديد مسار الحفظ");
         return;
       }
+
       final taskId = await FlutterDownloader.enqueue(
         url: downloadUrl,
         savedDir: savedPath,
@@ -102,12 +132,22 @@ class _StudentCoursesWidgetState extends State<StudentCoursesWidget> {
         openFileFromNotification: true,
         saveInPublicStorage: true,
       );
+
+      debugPrint("⬇️ FlutterDownloader taskId: $taskId");
+      debugPrint("⬇️ ==============================");
+
       if (taskId != null) {
         _showSnackBar("بدأ تحميل: ${course['name']}", isError: false);
+      } else {
+        debugPrint("❌ DOWNLOAD FAILED: taskId is null");
+        _showSnackBar("فشل بدء التحميل - taskId null");
       }
-    } catch (e) {
-      debugPrint(" Error: $e");
-      _showSnackBar("حدث خطأ أثناء محاولة التحميل");
+    } catch (e, stackTrace) {
+      debugPrint("❌ ====== DOWNLOAD EXCEPTION ======");
+      debugPrint("❌ Error: $e");
+      debugPrint("❌ StackTrace: $stackTrace");
+      debugPrint("❌ =================================");
+      _showSnackBar("خطأ: $e");
     }
   }
 

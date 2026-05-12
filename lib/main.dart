@@ -4,7 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
-
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -15,22 +15,20 @@ import 'employee/employee_home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  await FlutterDownloader.initialize(
-    debug: true,
-    ignoreSsl: true,
-  );
-
+  if (!kIsWeb) {
+    await FlutterDownloader.initialize(
+      debug: true,
+      ignoreSsl: true,
+    );
+  }
 
   await initializeDateFormatting('ar', null);
-
   runApp(const MyApp());
 }
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 

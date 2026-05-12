@@ -336,35 +336,36 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
       String stId = studentFullData?['id']?.toString() ?? "5";
       String levelId = studentFullData?['levelId']?.toString() ?? "1";
 
-      final url = Uri.parse('$baseUrl/Student/GetAllTasksBsedOnType?Stid=$stId&Levelid=$levelId&TypeId=-3');
-
       final headers = {
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       };
 
-      debugPrint("📡 Fetching from: $url");
+      // TypeId=-3 بيرجع كل الأنواع (1 و 2) مع بعض
+      final url = Uri.parse('$baseUrl/Student/GetAllTasksBsedOnType?Stid=$stId&Levelid=$levelId&TypeId=-3');
+      debugPrint("📡 Fetching tasks from: $url");
+
       final response = await http.get(url, headers: headers);
+      debugPrint("📥 Tasks Status: ${response.statusCode}");
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
-        final List<dynamic> tasks = decoded['data'] ?? [];
+        final List<dynamic> allTasks = decoded['data'] ?? [];
 
-        // DEBUG: طباعة تفاصيل كل task للتشخيص
         debugPrint("🔍 All tasks breakdown:");
-        for (final t in tasks) {
+        for (final t in allTasks) {
           debugPrint("  ID=${t['id']} typeId=${t['typeId']} name=${t['name']} exams=${(t['studentExams'] as List? ?? []).length}");
         }
 
         setState(() {
-          studentTasksList = tasks;
-          _taskErrorMessage = studentTasksList.isEmpty ? "لا يوجد أعمال حالية" : null;
+          studentTasksList = allTasks;
+          _taskErrorMessage = allTasks.isEmpty ? "لا يوجد أعمال حالية" : null;
         });
-        debugPrint(" Tasks Loaded: ${studentTasksList.length} items");
+        debugPrint("✅ Tasks Loaded: ${allTasks.length} items");
       }
     } catch (e) {
-      debugPrint(" Error: $e");
+      debugPrint("❌ Error: $e");
     } finally {
       if (mounted) setState(() => _isTasksLoading = false);
     }
@@ -453,7 +454,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('user_token');
       final queryParams = {
-        'examId': task['id'].toString(),
+        'examdId': task['id'].toString(),  // السيرفر بيستخدم examdId مش examId
         'levelId': task['levelId'].toString(),
         'typeId': task['typeId'].toString(),
         'stId': studentFullData?['id']?.toString() ?? "5",
@@ -662,30 +663,57 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
       final stId = studentFullData?['id']?.toString() ?? "5";
       final levelId = studentFullData?['levelId']?.toString() ?? "1";
       final typeId = taskSnapshot?['typeId']?.toString() ?? "2";
-      int successCount = 0;
-      // نرفع ملف واحد بس (أول ملف) — السيرفر بيرفض التكرار
       final examId = taskSnapshot?['id']?.toString() ?? '';
       final file = filesToUpload.first;
+
+      // ===== DEBUG: طباعة كل البيانات قبل الإرسال =====
+      debugPrint("📤 ====== UPLOAD DEBUG ======");
+      debugPrint("📤 File path: ${file.path}");
+      debugPrint("📤 File exists: ${await file.exists()}");
+      debugPrint("📤 File size: ${await file.length()} bytes");
+      debugPrint("📤 stId: $stId | levelId: $levelId | typeId: $typeId | examId: $examId");
+      debugPrint("📤 Token: ${token != null ? token.substring(0, 20) + '...' : 'NULL ❌'}");
+
       final uri = Uri.parse('https://nourelman.runasp.net/api/StudentCources/UploadStudentExam')
           .replace(queryParameters: {
-        'levelId': levelId,
-        'typeId': typeId,
+        'examdId': examId,
         'stId': stId,
-        'examId': examId,
       });
+
+      debugPrint("📤 Full URL: $uri");
+
       final request = http.MultipartRequest('POST', uri);
       request.headers['Authorization'] = 'Bearer $token';
       request.headers['Accept'] = '*/*';
       request.files.add(await http.MultipartFile.fromPath('file', file.path));
-      final response = await http.Response.fromStream(await request.send());
-      debugPrint("Upload ${response.statusCode}: ${response.body}");
-      // السيرفر بيرد 200 حتى لو في error في الـ body — نتحقق من "Done"
+
+      debugPrint("📤 Sending request...");
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      debugPrint("📥 ====== UPLOAD RESPONSE ======");
+      debugPrint("📥 Status Code: ${response.statusCode}");
+      debugPrint("📥 Response Headers: ${response.headers}");
+      debugPrint("📥 Response Body: ${response.body}");
+      debugPrint("📥 ==============================");
+
+      int successCount = 0;
       final responseBody = response.body;
-      if (response.statusCode == 200 && responseBody.contains('Done')) {
-        successCount = 1;
-      } else if (response.statusCode == 200 && !responseBody.contains('error')) {
-        successCount = 1;
+      // السيرفر بيرجع {"data":null,"statusCode":null,"error":"Done"} عند النجاح
+      bool isDone = false;
+      try {
+        final decoded = jsonDecode(responseBody);
+        isDone = decoded['error']?.toString().toLowerCase() == 'done'
+            || decoded['data'] != null;
+      } catch (_) {
+        isDone = responseBody.contains('Done');
       }
+      if (response.statusCode == 200 && isDone) {
+        successCount = 1;
+      } else {
+        debugPrint("❌ UPLOAD FAILED - Status: ${response.statusCode} | Body: $responseBody");
+      }
+
       if (mounted) {
         if (successCount > 0) {
           if (taskSnapshot != null) {
@@ -696,13 +724,20 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
               content: Text("✅ تم رفع $successCount ملف بنجاح"), backgroundColor: Colors.green));
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("❌ فشل رفع الملفات"), backgroundColor: Colors.red));
+              SnackBar(
+                content: Text("❌ فشل الرفع - كود: ${response.statusCode}\n${response.body.length > 80 ? response.body.substring(0, 80) : response.body}"),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 6),
+              ));
         }
       }
-    } catch (e) {
-      debugPrint("Upload Error: $e");
+    } catch (e, stackTrace) {
+      debugPrint("❌ ====== UPLOAD EXCEPTION ======");
+      debugPrint("❌ Error: $e");
+      debugPrint("❌ StackTrace: $stackTrace");
+      debugPrint("❌ ================================");
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("حدث خطأ أثناء الرفع"), backgroundColor: Colors.red));
+          SnackBar(content: Text("❌ خطأ: $e"), backgroundColor: Colors.red, duration: const Duration(seconds: 6)));
     } finally {
       if (mounted) setState(() => _isTasksLoading = false);
     }
@@ -713,15 +748,13 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
       return const Center(child: CircularProgressIndicator());
     }
     final bool isArabic = Localizations.localeOf(context).languageCode == 'ar';
-    final allResearch = studentTasksList.where((t) => t['typeId'] == 2).toList();
-    final latestResearch = allResearch.isNotEmpty
-        ? allResearch.reduce((a, b) => (a['id'] ?? 0) > (b['id'] ?? 0) ? a : b)
-        : null;
-    final bool latestResearchUploaded = latestResearch == null
-        || (latestResearch['studentExams'] as List? ?? []).isNotEmpty;
-    final pendingResearch = (latestResearch != null && !latestResearchUploaded)
-        ? [latestResearch]
-        : <dynamic>[];
+
+    // كل الأبحاث (typeId=2) اللي لم يُرفع عليها بعد
+    final pendingResearch = studentTasksList
+        .where((t) => t['typeId'] == 2 && (t['studentExams'] as List? ?? []).isEmpty)
+        .toList();
+
+    // أحدث سؤال أسبوعي (typeId=1)
     final allWeekly = studentTasksList.where((t) => t['typeId'] == 1).toList();
     final latestWeekly = allWeekly.isNotEmpty
         ? allWeekly.reduce((a, b) => (a['id'] ?? 0) > (b['id'] ?? 0) ? a : b)
@@ -741,7 +774,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> with TickerProvid
           else
             ...pendingResearch.map((task) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: _buildResearchTaskCard(task),
+              child: _buildResearchTaskCard(task as Map<String, dynamic>),
             )),
           const SizedBox(height: 24),
           _buildSectionLabel("السؤال الأسبوعي", Icons.help_outline),

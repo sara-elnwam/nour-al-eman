@@ -29,7 +29,7 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
   Map<String, dynamic>? _selectedOffice;
   String? _selectedLocationName;
   bool _isInRange = false;
-  bool _isLoadingStatus = true;
+  bool _isLoadingStatus = false; // خليها false بدل true
   bool _isLoading = false;
   List<dynamic> _apiOffices = [];
 
@@ -37,11 +37,14 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
   void initState() {
     super.initState();
     _updateTime();
-    _timer = Timer.periodic(
-        const Duration(seconds: 1), (timer) => _updateTime());
-    _initLocation();
-    _fetchOffices();
-    _checkCurrentStatus();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) => _updateTime());
+
+    // استخدمي Future.microtask أو Future.delayed
+    Future.microtask(() async {
+      await _initLocation();
+      await _fetchOffices();
+      // الـ Status تعتمد على اختيار المكتب، فممكن تتنادى جوا _fetchOffices أو بعدها
+    });
   }
 
   @override
@@ -85,62 +88,51 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
     } catch (_) {}
     return null;
   }
-
-  // ✅ السيرفر هو المصدر الوحيد لحالة الحضور - لا كاش محلي إطلاقاً
   Future<void> _checkCurrentStatus() async {
-    setState(() => _isLoadingStatus = true);
+    // ✅ حل الشاشة الحمراء: لو مفيش مكتب، بنقفل الـ Loading فوراً ونخرج بسلام
+    if (_selectedOffice == null) {
+      if (mounted) setState(() => _isLoadingStatus = false);
+      return;
+    }
+
+    if (mounted) setState(() => _isLoadingStatus = true);
+
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String empId = prefs.getString('user_id') ?? "";
-      if (empId.isEmpty) return;
-
-      final String todayDate =
-      intl.DateFormat('yyyy-MM-dd').format(DateTime.now());
-
       final String userGuid = prefs.getString('user_guid') ?? '';
-      final String tokenStatus = prefs.getString('user_token') ?? '';
+      final String token = prefs.getString('user_token') ?? '';
+      final int locationId = int.parse(_selectedOffice!['id'].toString());
 
-      if (userGuid.isEmpty) return;
+      if (userGuid.isEmpty) {
+        if (mounted) setState(() => _isLoadingStatus = false);
+        return;
+      }
 
-      final url =
-          'https://nourelman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=$userGuid';
+      final url = 'https://nourelman.runasp.net/api/Locations/Get-Attendance-Status?UserId=$userGuid&locationId=$locationId';
+
       final response = await http.get(
         Uri.parse(url),
         headers: {
-          if (tokenStatus.isNotEmpty && tokenStatus != 'no_token')
-            'Authorization': 'Bearer $tokenStatus',
+          if (token.isNotEmpty && token != 'no_token')
+            'Authorization': 'Bearer $token',
         },
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final List<dynamic> logs = data['data'] ?? [];
-
-        // شوف آخر حالة لليوم ده من السيرفر مباشرة
-        String? lastStatusToday;
-        for (var log in logs) {
-          final String? normalized = _normalizeDate(log['date']?.toString());
-          if (normalized == todayDate) {
-            final bool hasCheckOut = log['checkOutTime'] != null &&
-                log['checkOutTime'].toString().isNotEmpty &&
-                log['checkOutTime'].toString() != "--";
-            lastStatusToday = hasCheckOut ? "check-in" : "check-out";
-            // لا break - نكمل لآخر سجل لليوم ده
-          }
+        if (mounted) {
+          setState(() {
+            _checkType = (data['checkType'] == "check-in") ? "check-out" : "check-in";
+          });
         }
-        if (lastStatusToday != null && mounted) {
-          setState(() => _checkType = lastStatusToday!);
-        }
-      } else {
-        debugPrint("❌ Status check failed: ${response.statusCode}");
       }
     } catch (e) {
-      debugPrint("❌ Status check error: $e");
+      debugPrint(" Status check error: $e");
     } finally {
+      // ✅ الـ finally تضمن إن الدايرة تختفي حتى لو حصل خطأ في النت
       if (mounted) setState(() => _isLoadingStatus = false);
     }
   }
-
   Future<void> _initLocation() async {
     try {
       LocationPermission permission = await Geolocator.checkPermission();
@@ -165,47 +157,30 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
 
   void _checkDistance(Map<String, dynamic> office) {
     if (_myPosition == null) {
-      _showSnackBar(
-          "جاري تحديد موقعك، حاول مرة أخرى خلال ثوانٍ", Colors.orange);
+      _showSnackBar("جاري تحديد موقعك، حاول مرة أخرى خلال ثوانٍ", Colors.orange);
       return;
     }
 
     String rawCoords = (office['coordinates'] ?? "").replaceAll(',', ';');
-    List<String> parts =
-    rawCoords.split(';').where((s) => s.trim().isNotEmpty).toList();
-
+    List<String> parts = rawCoords.split(';').where((s) => s.trim().isNotEmpty).toList();
     List<Map<String, double>> polygonPoints = [];
     for (int i = 0; i + 1 < parts.length; i += 2) {
       double? lat = double.tryParse(parts[i].trim());
       double? lng = double.tryParse(parts[i + 1].trim());
-      if (lat != null && lng != null) {
-        polygonPoints.add({'lat': lat, 'lng': lng});
-      }
+      if (lat != null && lng != null) polygonPoints.add({'lat': lat, 'lng': lng});
     }
 
     bool result = false;
     if (polygonPoints.isNotEmpty) {
-      double centerLat = polygonPoints
-          .map((p) => p['lat']!)
-          .reduce((a, b) => a + b) /
-          polygonPoints.length;
-      double centerLng = polygonPoints
-          .map((p) => p['lng']!)
-          .reduce((a, b) => a + b) /
-          polygonPoints.length;
+      double centerLat = polygonPoints.map((p) => p['lat']!).reduce((a, b) => a + b) / polygonPoints.length;
+      double centerLng = polygonPoints.map((p) => p['lng']!).reduce((a, b) => a + b) / polygonPoints.length;
       double maxRadius = 0;
       for (var pt in polygonPoints) {
-        double r = Geolocator.distanceBetween(
-            centerLat, centerLng, pt['lat']!, pt['lng']!);
+        double r = Geolocator.distanceBetween(centerLat, centerLng, pt['lat']!, pt['lng']!);
         if (r > maxRadius) maxRadius = r;
       }
-      double allowedRadius = maxRadius + 150;
-      double distToCenter = Geolocator.distanceBetween(
-          _myPosition!.latitude,
-          _myPosition!.longitude,
-          centerLat,
-          centerLng);
-      result = distToCenter <= allowedRadius;
+      double distToCenter = Geolocator.distanceBetween(_myPosition!.latitude, _myPosition!.longitude, centerLat, centerLng);
+      result = distToCenter <= (maxRadius + 150);
     }
 
     setState(() {
@@ -218,31 +193,48 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
       _showSnackBar("أنت خارج النطاق لـ $_selectedLocationName", Colors.red);
     } else {
       _showSnackBar("أنت داخل نطاق $_selectedLocationName ✅", Colors.green);
+      _checkCurrentStatus();
     }
   }
-
   Future<void> _startBiometricAuth() async {
     if (!_isInRange) {
       _showSnackBar("لا يمكنك البصم لأنك خارج النطاق", Colors.red);
       return;
     }
     try {
-      final bool canAuth =
-          await auth.canCheckBiometrics || await auth.isDeviceSupported();
+      final bool canAuth = await auth.canCheckBiometrics || await auth.isDeviceSupported();
       if (!canAuth) {
-        _showSnackBar("البصمة غير مدعومة على هذا الجهاز", Colors.red);
+        _showSnackBar("البصمة غير مدعومة أو غير مفعلة على هذا الجهاز. يرجى تفعيلها من إعدادات الهاتف.", Colors.red);
         return;
       }
-      bool authenticated = await auth.authenticate(
-        localizedReason: 'تأكيد الحضور في $_selectedLocationName',
-      );
-      if (authenticated) await _sendAttendanceToServer();
+
+      bool authenticated = false;
+      try {
+        authenticated = await auth.authenticate(
+          localizedReason: 'تأكيد الحضور في $_selectedLocationName',
+        );
+      } on Exception catch (e) {
+        final msg = e.toString().toLowerCase();
+        // 🤫 هنا السر: لو الضغطة كانت "إلغاء" أو "خروج" مش بنظهر أي إيرور خالص
+        if (msg.contains('user_cancel') || msg.contains('notavailable') || msg.contains('canceled')) {
+          debugPrint("تم إلغاء التوثيق بواسطة المستخدم - صمت تام");
+          return;
+        }
+
+        // 💡 لو فيه مشكلة تانية، بنديله تعليمات بدل مجرد إيرور
+        _showSnackBar("يرجى التأكد من نظافة الحساس ووضع إصبعك بشكل صحيح، أو تأكد من تسجيل بصمتك في إعدادات الهاتف.", Colors.orange);
+        return;
+      }
+
+      if (authenticated) {
+        await _sendAttendanceToServer();
+      }
+      // شلنا الـ else اللي بتطلع "لم يتم التحقق" عشان لو فشل مرة ميزعجوش بالرسائل
+
     } catch (e) {
-      _showSnackBar("حدث خطأ أثناء التوثيق", Colors.red);
+      debugPrint("خطأ غير متوقع في البصمة: $e");
     }
   }
-
-  // ✅ البصمة تُرسل للسيرفر فقط - لو فشل الإرسال يظهر خطأ ولا يُحفظ محلياً
   Future<void> _sendAttendanceToServer() async {
     setState(() => _isLoading = true);
     try {
@@ -250,24 +242,14 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
       final String? userGuid = prefs.getString('user_guid');
       final String token = prefs.getString('user_token') ?? '';
 
-      if (userGuid == null || userGuid.isEmpty) {
-        _showSnackBar("خطأ: كود المستخدم غير صالح", Colors.red);
-        return;
-      }
-      if (_myPosition == null) {
-        _showSnackBar("خطأ: لم يتم تحديد موقعك بعد", Colors.red);
+      if (_selectedOffice == null || _myPosition == null) {
+        _showSnackBar("بيانات الموقع أو المكتب غير مكتملة", Colors.orange);
         return;
       }
 
-      final int? selectedLocId = _selectedOffice != null
-          ? int.tryParse(_selectedOffice!['id'].toString())
-          : null;
+      final int selectedLocId = int.parse(_selectedOffice!['id'].toString());
 
-      if (selectedLocId == null) {
-        _showSnackBar("برجاء اختيار المكتب أولاً", Colors.orange);
-        return;
-      }
-
+      // تجهيز البيانات بنفس الصيغة التي طلبها زميلك (Object داخل الـ Body)
       final Map<String, dynamic> attendanceData = {
         "id": 0,
         "userId": userGuid,
@@ -279,44 +261,49 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
         },
       };
 
-      final bool hasToken = token.isNotEmpty && token != 'no_token';
-
       final response = await http.post(
         Uri.parse('https://nourelman.runasp.net/api/Locations/employee-attendance'),
         headers: {
           'Content-Type': 'application/json',
-          if (hasToken) 'Authorization': 'Bearer $token',
+          if (token.isNotEmpty && token != 'no_token') 'Authorization': 'Bearer $token',
         },
         body: json.encode(attendanceData),
       ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final responseData = json.decode(response.body);
-        if (responseData['error'] == null ||
-            responseData['error'].toString() == "null" ||
-            responseData['error'].toString().isEmpty) {
-          _showSnackBar(
-            _checkType == "check-in"
-                ? "✅ تم تسجيل الحضور بنجاح"
-                : "✅ تم تسجيل الانصراف بنجاح",
-            Colors.green,
-          );
-          _flipCheckType();
-        } else {
-          _showSnackBar("خطأ: ${responseData['error']}", Colors.red);
+        // عرض رسالة النجاح للمستخدم
+        _showSnackBar(
+          _checkType == "check-in" ? "✅ تم تسجيل الحضور بنجاح" : "✅ تم تسجيل الانصراف بنجاح",
+          Colors.green,
+        );
+
+        // 1. تحديث الحالة محلياً فوراً (Local State Update)
+        // هذا السطر هو المسؤول عن تغيير لون الأيقونة فوراً من الأزرق للأحمر أو العكس
+        if (mounted) {
+          setState(() {
+            _checkType = (_checkType == "check-in") ? "check-out" : "check-in";
+          });
         }
+
+        // 2. تأخير بسيط (ثانية واحدة) قبل سؤال السيرفر عن الحالة الجديدة
+        // لضمان أن السيرفر أتم معالجة البيانات وتحديث قاعدة البيانات لديه
+        Future.delayed(const Duration(seconds: 1), () {
+          if (mounted) {
+            _checkCurrentStatus();
+          }
+        });
       } else {
-        _showSnackBar("فشل في الاتصال بالسيرفر (${response.statusCode})", Colors.red);
+        _showSnackBar("فشل في تسجيل العملية (${response.statusCode})", Colors.red);
       }
     } catch (e) {
-      debugPrint("❌ Send attendance error: $e");
-      // ❌ لا حفظ محلي - لو السيرفر مش متاح يظهر خطأ فقط
-      _showSnackBar("لا يوجد اتصال بالإنترنت، لم يتم تسجيل الحضور. حاول مرة أخرى", Colors.red);
+      // تصحيح السطر 270: استخدام الفاصلة الإنجليزية (,) بدلاً من العربية (،)
+      _showSnackBar("لا يوجد اتصال بالإنترنت", Colors.red);
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
-
   void _flipCheckType() {
     if (mounted) {
       setState(() {
@@ -502,11 +489,16 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
   }
 
   Widget _buildFingerprintButton() {
+    // التحقق من صلاحية الضغط (يجب اختيار مكتب وتواجد المستخدم داخل النطاق)
     bool canPress = _selectedOffice != null && _isInRange;
+
+    // تحديد النص بناءً على الحالة الحالية القادمة من السيرفر أو التحديث المحلي
     String statusText = _checkType == "check-in"
         ? "اضغط لتسجيل الحضور"
         : "اضغط لتسجيل الانصراف";
-    Color activeColor = _checkType == "check-in" ? kActiveBlue : Colors.red;
+
+    // 🔥 تحديد اللون: أزرق للحضور وأحمر للانصراف
+    Color activeColor = (_checkType == "check-in") ? kActiveBlue : Colors.red;
 
     return Column(
       children: [
@@ -514,12 +506,11 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
           onTap: canPress
               ? _startBiometricAuth
               : () {
+            // رسائل توضيحية للموظف في حالة عدم تفعيل الزر
             if (_selectedOffice == null) {
-              _showSnackBar(
-                  "برجاء اختيار المكتب أولاً", Colors.orange);
+              _showSnackBar("برجاء اختيار المكتب أولاً", Colors.orange);
             } else if (!_isInRange) {
-              _showSnackBar(
-                  "أنت خارج النطاق، لا يمكنك البصم", Colors.red);
+              _showSnackBar("أنت خارج النطاق، لا يمكنك البصم", Colors.red);
             }
           },
           child: AnimatedContainer(
@@ -528,16 +519,19 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white,
+              // تغيير لون الحدود بناءً على الحالة وصلاحية الضغط
               border: Border.all(
                   color: canPress ? activeColor : Colors.grey.shade300,
                   width: 5),
               boxShadow: [
                 if (canPress)
                   BoxShadow(
-                      color: activeColor.withOpacity(0.3), blurRadius: 20)
+                      color: activeColor.withOpacity(0.3),
+                      blurRadius: 20)
               ],
             ),
             child: Icon(
+              // تغيير الأيقونة بناءً على نوع البصمة القادمة
               _checkType == "check-in" ? Icons.fingerprint : Icons.exit_to_app,
               size: 80,
               color: canPress ? activeColor : Colors.grey.shade300,

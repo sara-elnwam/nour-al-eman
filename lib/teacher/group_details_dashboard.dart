@@ -659,12 +659,17 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
               _cleanValue(item["no"]) ??
               _cleanValue(firstExam?["note"]);
 
-          debugPrint(" EXAM: ${exam["name"]} | grade=$rawGrade | note=$rawNote | firstExam=$firstExam");
+          // ✅ استخدام URL ملف الطالب (البحث المرفوع من الطالب) وليس URL الامتحان
+          final studentFileUrl = _cleanValue(item["url"]) ??
+              _cleanValue(firstExam?["url"]);
+
+          debugPrint(" EXAM: ${exam["name"]} | grade=$rawGrade | note=$rawNote | studentUrl=$studentFileUrl");
           return {
             "exam": exam,
             "grade": rawGrade,
             "note": rawNote,
             "studentId": item["studentId"] ?? item["stId"] ?? item["st"],
+            "studentUrl": studentFileUrl, // ✅ URL ملف البحث الخاص بالطالب
           };
         }).toList();
         setState(() => _tasks = normalized);
@@ -816,30 +821,33 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
     );
   }
 
-  Future<void> _startDownload(String? relativeUrl, String examName) async {
-    if (relativeUrl == null || relativeUrl.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("رابط الملف غير متوفر"), backgroundColor: Colors.red));
-      }
-      return;
-    }
-    final String url = relativeUrl.startsWith('http')
-        ? relativeUrl
-        : "https://nourelman.runasp.net$relativeUrl";
-    final String ext = relativeUrl.contains('.')
-        ? relativeUrl.split('.').last.split('?').first.toLowerCase()
-        : 'pdf';
+  Future<void> _startDownload(int examId, String examName) async {
+    // ✅ استخدام endpoint الرسمي للتحميل
+    final String url =
+        "https://nourelman.runasp.net/api/StudentCources/DownloadLatest?id=$examId";
+
+    debugPrint("⬇️ Downloading: $url");
+
     try {
       final directory = Directory('/storage/emulated/0/Download');
       if (!await directory.exists()) await directory.create(recursive: true);
 
-      String finalFileName = "${examName.replaceAll(' ', '_')}.$ext";
+      // جلب الملف لمعرفة الامتداد من الـ Content-Type
+      final headRes = await http.head(Uri.parse(url))
+          .timeout(const Duration(seconds: 8));
+      final contentType = headRes.headers['content-type'] ?? '';
+      String ext = 'pdf';
+      if (contentType.contains('image/png')) ext = 'png';
+      else if (contentType.contains('image/jpeg')) ext = 'jpg';
+      else if (contentType.contains('application/pdf')) ext = 'pdf';
+      else if (contentType.contains('msword') || contentType.contains('wordprocessingml')) ext = 'docx';
+
+      final String fileName = "${examName.replaceAll(' ', '_')}.$ext";
 
       await FlutterDownloader.enqueue(
         url: url,
         savedDir: directory.path,
-        fileName: finalFileName,
+        fileName: fileName,
         showNotification: true,
         openFileFromNotification: true,
         saveInPublicStorage: true,
@@ -848,14 +856,20 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("⬇️ جاري التحميل...", style: TextStyle(fontFamily: "Almarai")),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 1),
-            ));
+          const SnackBar(
+            content: Text("⬇️ جاري التحميل...", style: TextStyle(fontFamily: "Almarai")),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 1),
+          ),
+        );
       }
     } catch (e) {
       debugPrint("Download Error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("فشل التحميل، تحقق من الاتصال"), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -893,6 +907,8 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
 
             final gradeVal = item["grade"];
             final bool isGraded = gradeVal != null;
+            // ✅ هل الطالب رفع الملف؟
+            final String? studentUrl = item["studentUrl"];
             debugPrint(" BUILD item ${exam["name"]} | gradeVal=$gradeVal | isGraded=$isGraded");
             return Container(
               margin: const EdgeInsets.only(bottom: 14),
@@ -914,12 +930,36 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       InkWell(
-                        onTap: () => _startDownload(exam["url"], exam["name"] ?? "research"),
+                        // ✅ استخدام endpoint التحميل الرسمي بالـ examId
+                        onTap: () {
+                          final int? examId = exam["id"];
+                          if (examId == null || studentUrl == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("الطالب لم يرفع الملف بعد"),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                            return;
+                          }
+                          _startDownload(examId, exam["name"] ?? "research");
+                        },
                         child: Row(
-                          children: const [
-                            Icon(Icons.download_rounded, color: Color(0xFFD17820), size: 18),
-                            SizedBox(width: 4),
-                            Text("تحميل", style: TextStyle(color: Color(0xFFD17820), fontWeight: FontWeight.bold, fontSize: 12)),
+                          children: [
+                            Icon(
+                              studentUrl != null ? Icons.download_rounded : Icons.upload_file_outlined,
+                              color: studentUrl != null ? const Color(0xFFD17820) : Colors.grey,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              studentUrl != null ? "تحميل" : "لم يُرفع",
+                              style: TextStyle(
+                                color: studentUrl != null ? const Color(0xFFD17820) : Colors.grey,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
                           ],
                         ),
                       ),
