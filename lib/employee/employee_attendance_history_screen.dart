@@ -46,9 +46,11 @@ class _AttendanceHistoryScreenState
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String? userId = prefs.getString('user_id');
 
-      if (userId == null || userId.isEmpty) {
+      // ✅ نعتمد على user_guid فقط لأنه المطلوب في الـ API
+      final String? userGuid = prefs.getString('user_guid');
+
+      if (userGuid == null || userGuid.isEmpty) {
         _showError("لم يتم العثور على بيانات المستخدم");
         setState(() => _hasError = true);
         return;
@@ -56,7 +58,7 @@ class _AttendanceHistoryScreenState
 
       final String token = prefs.getString('user_token') ?? '';
       final url =
-          "https://nourelman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=${prefs.getString('user_guid') ?? ''}";
+          "https://nourelman.runasp.net/api/Locations/GetAll-employee-attendance?UserId=$userGuid";
 
       final response = await http.get(
         Uri.parse(url),

@@ -431,7 +431,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _loginWithSelectedAccount({
     required String phone,
     required String password,
-    required String userId,
+    required String userId,    // هذا هو الـ GUID الطويل (لا نستخدمه)
     required int userType,
   }) async {
     try {
@@ -498,20 +498,24 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       if (matched == null) {
-        debugPrint(" GetAll");
+        debugPrint("❌ GetAll");
         _showErrorSnackBar("حدث خطأ في تسجيل الدخول");
         return;
       }
 
-      final numericId = matched['id']?.toString() ?? "";
-      debugPrint("  numeric ID: $numericId");
+      // داخل دالة _loginWithSelectedAccount بعد matched
+
+      final numericId = matched['id']?.toString() ?? "";           // الرقم 71
+      final guidUserId = userId;                                   // الـ GUID من ValidateUserLogin
+
+      debugPrint("✅ numeric ID (employee): $numericId");
+      debugPrint("✅ GUID (AspNetUsers): $guidUserId");
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('user_id', numericId);
-      await prefs.setString('user_guid', userId);
+      await prefs.setString('user_guid', guidUserId);   // ✅ استخدم الـ GUID هنا
       await prefs.setString('user_phone', phone);
       await prefs.setString('user_token', "");
-
       final loginDataToSave = <String, dynamic>{
         'userId': numericId,
         'user_Id': userId,
@@ -522,7 +526,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await prefs.setString('loginData', jsonEncode(loginDataToSave));
       await prefs.setBool('is_logged_in', true);
 
-      debugPrint("✅ Saved user_id: $numericId | guid: $userId");
+      debugPrint("✅ Saved user_guid (numeric): $numericId | guid (ignored): $userId");
 
       Widget nextScreen;
       if (userType == 1 || userType == 4) {
@@ -553,19 +557,22 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _loginWithAccount(Map<String, dynamic> userData) async {
     final prefs = await SharedPreferences.getInstance();
 
-    String numericId = userData['userId']?.toString() ?? "";
-    String guid = userData['user_Id']?.toString() ??
-        userData['id']?.toString() ?? "";
+    // ✅ استخدم الـ GUID الصحيح من جدول AspNetUsers
+    String correctUserId = userData['user_Id']?.toString() ??           // هذا هو الـ GUID
+        userData['id']?.toString() ?? "";                               // إما GUID أو رقم
+
+    String numericId = userData['userId']?.toString() ?? "";            // الرقم من جدول Employees
     String phone = userData['phoneNumber']?.toString() ?? "";
 
-    await prefs.setString('user_id', numericId);
-    await prefs.setString('user_guid', guid);
+    // ✅ IMPORTANT: استخدم الـ GUID وليس الرقم
+    await prefs.setString('user_id', numericId);                        // الرقمي للموظف
+    await prefs.setString('user_guid', correctUserId);                  // ✅ الـ GUID الصحيح
     await prefs.setString('user_phone', phone);
     await prefs.setString('user_token', userData['token']?.toString() ?? "no_token");
     await prefs.setString('loginData', jsonEncode(userData));
     await prefs.setBool('is_logged_in', true);
 
-    debugPrint(" Saved user_id: $numericId | guid: $guid");
+    debugPrint("✅ Saved user_guid (GUID): $correctUserId | numeric_id (emp): $numericId");
 
     int userType = int.tryParse(userData['userType']?.toString() ?? "0") ?? 0;
 

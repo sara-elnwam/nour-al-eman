@@ -26,18 +26,20 @@ class _GroupsScreenState extends State<GroupsScreen> {
       final prefs = await SharedPreferences.getInstance();
       String empId = prefs.getString('user_id') ?? "";
 
-      print("DEBUG: Current Employee ID fetching groups is: $empId");
       if (empId.isEmpty) {
-        print("خطأ: لم يتم العثور على ID للمعلم في الـ SharedPreferences");
+        // ✅ استخدام mounted قبل أي setState
         if (mounted) setState(() => _isLoading = false);
         return;
       }
+
       final response = await http.get(
-          Uri.parse('https://nourelman.runasp.net/api/Group/GetAllEmployeeGroups?EmpId=$empId')      );
+          Uri.parse('https://nourelman.runasp.net/api/Group/GetAllEmployeeGroups?EmpId=$empId')
+      );
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonData = json.decode(response.body);
         if (jsonData["data"] != null) {
+          // ✅ التأكد من أن الصفحة مازالت نشطة
           if (mounted) {
             setState(() {
               _groups = (jsonData["data"] as List)
@@ -50,11 +52,9 @@ class _GroupsScreenState extends State<GroupsScreen> {
           if (mounted) setState(() => _isLoading = false);
         }
       } else {
-        print("Server Error: ${response.statusCode}");
         if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
-      print("Error fetching groups: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }

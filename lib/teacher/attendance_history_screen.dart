@@ -106,11 +106,14 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
   }
 
   void _processData(List<AttendanceData> rawData) {
+    // 1. نقوم بالعمليات التقيلة "خارج" setState تماماً
     Map<String, List<AttendanceData>> groups = {};
 
+    // فلترة وترتيب البيانات
     List<AttendanceData> validData = rawData
         .where((item) => _parseServerDate(item.date) != null)
         .toList();
+
     validData.sort((a, b) {
       final dateA = _parseServerDate(a.date);
       final dateB = _parseServerDate(b.date);
@@ -124,6 +127,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
       return inB.compareTo(inA);
     });
 
+    // تجميع البيانات في مجموعات حسب الشهر
     for (var entry in validData) {
       DateTime date = _parseServerDate(entry.date)!;
       String monthYear = DateFormat('MMMM yyyy', 'ar').format(date);
@@ -131,11 +135,17 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
       groups[monthYear]!.add(entry);
     }
 
-    setState(() {
-      _groupedAttendance = groups;
-      _availableMonths = groups.keys.toList();
-      _currentMonthIndex = 0;
-    });
+    // استخراج قائمة الشهور
+    List<String> months = groups.keys.toList();
+
+    // 2. الآن ننادي setState فقط لتحديث المتغيرات النهائية للواجهة
+    if (mounted) {
+      setState(() {
+        _groupedAttendance = groups;
+        _availableMonths = months;
+        _currentMonthIndex = 0;
+      });
+    }
   }
 
   @override

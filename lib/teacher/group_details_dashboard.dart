@@ -822,57 +822,71 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
   }
 
   Future<void> _startDownload(int examId, String examName) async {
-    // ✅ استخدام endpoint الرسمي للتحميل
-    final String url =
-        "https://nourelman.runasp.net/api/StudentCources/DownloadLatest?id=$examId";
+    // ✅ الرابط الرسمي الموحد المعتمد في الـ React والـ Backend
+    final String url = "https://nourelman.runasp.net/api/StudentCources/DownloadLatest?id=$examId";
 
-    debugPrint("⬇️ Downloading: $url");
+    debugPrint("⬇️ بدء التحميل من الرابط الموحد: $url");
 
     try {
+      // 1. تحديد مسار التحميل الافتراضي في أجهزة الأندرويد
       final directory = Directory('/storage/emulated/0/Download');
-      if (!await directory.exists()) await directory.create(recursive: true);
+      if (!await directory.exists()) {
+        await directory.create(recursive: true);
+      }
 
-      // جلب الملف لمعرفة الامتداد من الـ Content-Type
-      final headRes = await http.head(Uri.parse(url))
-          .timeout(const Duration(seconds: 8));
+      // 2. فحص رأس الملف (Header) لتحديد الامتداد الصحيح (.pdf, .jpg, إلخ)
+      // هذا يضمن أن الملف سيفتح بالتطبيق المناسب بعد تحميله
+      final headRes = await http.head(Uri.parse(url)).timeout(const Duration(seconds: 8));
       final contentType = headRes.headers['content-type'] ?? '';
-      String ext = 'pdf';
-      if (contentType.contains('image/png')) ext = 'png';
-      else if (contentType.contains('image/jpeg')) ext = 'jpg';
-      else if (contentType.contains('application/pdf')) ext = 'pdf';
-      else if (contentType.contains('msword') || contentType.contains('wordprocessingml')) ext = 'docx';
 
+      String ext = 'pdf'; // الامتداد الافتراضي
+      if (contentType.contains('image/png')) {
+        ext = 'png';
+      } else if (contentType.contains('image/jpeg')) {
+        ext = 'jpg';
+      } else if (contentType.contains('application/pdf')) {
+        ext = 'pdf';
+      } else if (contentType.contains('msword') || contentType.contains('wordprocessingml')) {
+        ext = 'docx';
+      }
+
+      // تنظيف اسم الملف من المسافات لضمان عدم حدوث مشاكل في نظام الملفات
       final String fileName = "${examName.replaceAll(' ', '_')}.$ext";
 
+      // 3. إضافة المهمة لـ FlutterDownloader
+      // سيعمل التحميل في الخلفية ويظهر إشعار للمستخدم (الشيخ) عند الانتهاء
       await FlutterDownloader.enqueue(
         url: url,
         savedDir: directory.path,
         fileName: fileName,
-        showNotification: true,
-        openFileFromNotification: true,
-        saveInPublicStorage: true,
+        showNotification: true, // إظهار الإشعار في شريط الإشعارات
+        openFileFromNotification: true, // السماح بفتح الملف عند الضغط على الإشعار
+        saveInPublicStorage: true, // الحفظ في مكان عام ليسهل الوصول إليه
         headers: {"Accept": "*/*"},
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("⬇️ جاري التحميل...", style: TextStyle(fontFamily: "Almarai")),
+            content: Text("⬇️ جاري التحميل... يمكنك متابعة الإشعارات",
+                style: TextStyle(fontFamily: "Almarai")),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 1),
+            duration: Duration(seconds: 2),
           ),
         );
       }
     } catch (e) {
-      debugPrint("Download Error: $e");
+      debugPrint("❌ خطأ أثناء التحميل: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("فشل التحميل، تحقق من الاتصال"), backgroundColor: Colors.red),
+          const SnackBar(
+              content: Text("فشل التحميل، يرجى التحقق من اتصال الإنترنت"),
+              backgroundColor: Colors.red
+          ),
         );
       }
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Directionality(

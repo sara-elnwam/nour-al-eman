@@ -18,7 +18,8 @@ class MainAttendanceScreen extends StatefulWidget {
   _MainAttendanceScreenState createState() => _MainAttendanceScreenState();
 }
 
-class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
+class _MainAttendanceScreenState extends State<MainAttendanceScreen>
+    with WidgetsBindingObserver {
   final LocalAuthentication auth = LocalAuthentication();
 
   String _currentLocationText = "جاري تحديد موقعك...";
@@ -29,37 +30,52 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
   Map<String, dynamic>? _selectedOffice;
   String? _selectedLocationName;
   bool _isInRange = false;
-  bool _isLoadingStatus = false; // خليها false بدل true
+  bool _isLoadingStatus = false;
   bool _isLoading = false;
   List<dynamic> _apiOffices = [];
 
   @override
   void initState() {
     super.initState();
+    _checkUserGuid();
+    WidgetsBinding.instance.addObserver(this);
     _updateTime();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) => _updateTime());
-
-    // استخدمي Future.microtask أو Future.delayed
+    _timer = Timer.periodic(
+        const Duration(seconds: 1), (timer) => _updateTime());
     Future.microtask(() async {
       await _initLocation();
       await _fetchOffices();
-      // الـ Status تعتمد على اختيار المكتب، فممكن تتنادى جوا _fetchOffices أو بعدها
     });
+  }
+
+  Future<void> _checkUserGuid() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_guid');
+    debugPrint("👤 Stored user_guid: $userId");
   }
 
   @override
   void dispose() {
     _timer.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _selectedOffice != null) {
+      debugPrint("🔄 App resumed: refreshing status...");
+      _checkCurrentStatus();
+    }
+  }
+
   void _updateTime() {
-    final DateTime now = DateTime.now();
-    final String formattedTime = intl.DateFormat('hh:mm a')
+    final now = DateTime.now();
+    final formatted = intl.DateFormat('hh:mm a')
         .format(now)
         .replaceFirst('AM', 'ص')
         .replaceFirst('PM', 'م');
-    if (mounted) setState(() => _currentTime = formattedTime);
+    if (mounted) setState(() => _currentTime = formatted);
   }
 
   Future<void> _fetchOffices() async {
@@ -68,47 +84,53 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
           .get(Uri.parse('https://nourelman.runasp.net/api/Locations/Getall'));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        setState(() => _apiOffices = data['data'] ?? data);
+        final List<dynamic> newOffices = data['data'] ?? data;
+        setState(() {
+          _apiOffices = newOffices;
+          if (_selectedOffice != null) {
+            final matched = newOffices.firstWhere(
+                  (o) => o['id'].toString() == _selectedOffice!['id'].toString(),
+              orElse: () => null,
+            );
+            _selectedOffice = matched;
+          }
+        });
       }
     } catch (e) {
       _showSnackBar("تعذر الاتصال بالسيرفر", Colors.red);
     }
   }
 
-  String? _normalizeDate(String? dateStr) {
-    if (dateStr == null || dateStr.isEmpty) return null;
-    try {
-      return intl.DateFormat('M/d/yyyy').parse(dateStr).toString().substring(0, 10);
-    } catch (_) {}
-    try {
-      return DateTime.parse(dateStr).toString().substring(0, 10);
-    } catch (_) {}
-    try {
-      return intl.DateFormat('d/M/yyyy').parse(dateStr).toString().substring(0, 10);
-    } catch (_) {}
-    return null;
-  }
-  Future<void> _checkCurrentStatus() async {
-    // ✅ حل الشاشة الحمراء: لو مفيش مكتب، بنقفل الـ Loading فوراً ونخرج بسلام
+  Future<void> _checkCurrentStatus({bool silent = false}) async {
     if (_selectedOffice == null) {
-      if (mounted) setState(() => _isLoadingStatus = false);
+      if (!silent && mounted) setState(() => _isLoadingStatus = false);
       return;
     }
 
-    if (mounted) setState(() => _isLoadingStatus = true);
+    if (!silent && mounted) setState(() => _isLoadingStatus = true);
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String userGuid = prefs.getString('user_guid') ?? '';
+      final String? userId = prefs.getString('user_guid');
       final String token = prefs.getString('user_token') ?? '';
-      final int locationId = int.parse(_selectedOffice!['id'].toString());
 
-      if (userGuid.isEmpty) {
-        if (mounted) setState(() => _isLoadingStatus = false);
+      if (userId == null || userId.isEmpty || userId == 'null') {
+        debugPrint("❌ userId غير صالح: $userId");
+        if (!silent && mounted) setState(() => _isLoadingStatus = false);
         return;
       }
 
-      final url = 'https://nourelman.runasp.net/api/Locations/Get-Attendance-Status?UserId=$userGuid&locationId=$locationId';
+      final int locationId = int.tryParse(_selectedOffice!['id'].toString()) ?? 0;
+      if (locationId == 0) {
+        debugPrint("❌ locationId غير صالح");
+        if (!silent && mounted) setState(() => _isLoadingStatus = false);
+        return;
+      }
+
+      // ✅ استخدم userId و locId (بحرف i صغير)
+      final url = 'https://nourelman.runasp.net/api/Locations/get-employee-attendance-status?userId=$userId&locId=$locationId';
+
+      debugPrint("🌐 Calling API: $url");
 
       final response = await http.get(
         Uri.parse(url),
@@ -118,19 +140,58 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
         },
       ).timeout(const Duration(seconds: 10));
 
+      debugPrint("📦 Status Code: ${response.statusCode}");
+      debugPrint("📦 RAW BODY: ${response.body}");
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (mounted) {
-          setState(() {
-            _checkType = (data['checkType'] == "check-in") ? "check-out" : "check-in";
-          });
+
+        // ✅ المفتاح هو: checkType موجود داخل data['data']
+        String checkTypeValue = '';
+
+        if (data['data'] != null && data['data'] is Map) {
+          final innerData = data['data'] as Map;
+          if (innerData['checkType'] != null) {
+            checkTypeValue = innerData['checkType'].toString().trim();
+          }
         }
+
+        // لو لسه مفيش، جرب data['data'] لو كان String
+        if (checkTypeValue.isEmpty && data['data'] != null && data['data'] is String) {
+          checkTypeValue = data['data'].toString().trim();
+        }
+
+        // لو لسه مفيش، جرب data نفسها لو كان String
+        if (checkTypeValue.isEmpty && data is String) {
+          checkTypeValue = data.trim();
+        }
+
+        debugPrint("✅ checkTypeValue final = '$checkTypeValue'");
+
+        if (mounted) {
+          String newCheckType;
+          // ✅ المنطق: آخر عملية كانت check-in يبقى الزرار check-out والعكس
+          if (checkTypeValue == 'check-in') {
+            newCheckType = 'check-out';
+          } else if (checkTypeValue == 'check-out') {
+            newCheckType = 'check-in';
+          } else {
+            newCheckType = 'check-in';
+          }
+
+          if (newCheckType != _checkType) {
+            debugPrint("🔄 _checkType: $_checkType => $newCheckType");
+            setState(() => _checkType = newCheckType);
+          }
+        }
+      } else {
+        debugPrint("❌ Non-200 response: ${response.statusCode}");
+        debugPrint("❌ Response body: ${response.body}");
       }
     } catch (e) {
-      debugPrint(" Status check error: $e");
+      debugPrint("❌ Status check error: $e");
     } finally {
-      // ✅ الـ finally تضمن إن الدايرة تختفي حتى لو حصل خطأ في النت
-      if (mounted) setState(() => _isLoadingStatus = false);
+      if (!silent && mounted) setState(() => _isLoadingStatus = false);
     }
   }
   Future<void> _initLocation() async {
@@ -142,8 +203,8 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
       Position position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high);
       _myPosition = position;
-      List<Placemark> placemarks =
-      await placemarkFromCoordinates(position.latitude, position.longitude);
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+          position.latitude, position.longitude);
       if (mounted && placemarks.isNotEmpty) {
         setState(() {
           _currentLocationText =
@@ -157,29 +218,46 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
 
   void _checkDistance(Map<String, dynamic> office) {
     if (_myPosition == null) {
-      _showSnackBar("جاري تحديد موقعك، حاول مرة أخرى خلال ثوانٍ", Colors.orange);
+      _showSnackBar(
+          "جاري تحديد موقعك، حاول مرة أخرى خلال ثوانٍ", Colors.orange);
       return;
     }
 
     String rawCoords = (office['coordinates'] ?? "").replaceAll(',', ';');
-    List<String> parts = rawCoords.split(';').where((s) => s.trim().isNotEmpty).toList();
+    List<String> parts =
+    rawCoords.split(';').where((s) => s.trim().isNotEmpty).toList();
     List<Map<String, double>> polygonPoints = [];
+
     for (int i = 0; i + 1 < parts.length; i += 2) {
       double? lat = double.tryParse(parts[i].trim());
       double? lng = double.tryParse(parts[i + 1].trim());
-      if (lat != null && lng != null) polygonPoints.add({'lat': lat, 'lng': lng});
+      if (lat != null && lng != null)
+        polygonPoints.add({'lat': lat, 'lng': lng});
     }
 
     bool result = false;
     if (polygonPoints.isNotEmpty) {
-      double centerLat = polygonPoints.map((p) => p['lat']!).reduce((a, b) => a + b) / polygonPoints.length;
-      double centerLng = polygonPoints.map((p) => p['lng']!).reduce((a, b) => a + b) / polygonPoints.length;
+      double centerLat = polygonPoints
+          .map((p) => p['lat']!)
+          .reduce((a, b) => a + b) /
+          polygonPoints.length;
+      double centerLng = polygonPoints
+          .map((p) => p['lng']!)
+          .reduce((a, b) => a + b) /
+          polygonPoints.length;
+
       double maxRadius = 0;
       for (var pt in polygonPoints) {
-        double r = Geolocator.distanceBetween(centerLat, centerLng, pt['lat']!, pt['lng']!);
+        double r = Geolocator.distanceBetween(
+            centerLat, centerLng, pt['lat']!, pt['lng']!);
         if (r > maxRadius) maxRadius = r;
       }
-      double distToCenter = Geolocator.distanceBetween(_myPosition!.latitude, _myPosition!.longitude, centerLat, centerLng);
+
+      double distToCenter = Geolocator.distanceBetween(
+          _myPosition!.latitude,
+          _myPosition!.longitude,
+          centerLat,
+          centerLng);
       result = distToCenter <= (maxRadius + 150);
     }
 
@@ -196,15 +274,19 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
       _checkCurrentStatus();
     }
   }
+
   Future<void> _startBiometricAuth() async {
     if (!_isInRange) {
       _showSnackBar("لا يمكنك البصم لأنك خارج النطاق", Colors.red);
       return;
     }
     try {
-      final bool canAuth = await auth.canCheckBiometrics || await auth.isDeviceSupported();
+      final bool canAuth =
+          await auth.canCheckBiometrics || await auth.isDeviceSupported();
       if (!canAuth) {
-        _showSnackBar("البصمة غير مدعومة أو غير مفعلة على هذا الجهاز. يرجى تفعيلها من إعدادات الهاتف.", Colors.red);
+        _showSnackBar(
+            "البصمة غير مدعومة أو غير مفعلة على هذا الجهاز. يرجى تفعيلها من إعدادات الهاتف.",
+            Colors.red);
         return;
       }
 
@@ -215,26 +297,23 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
         );
       } on Exception catch (e) {
         final msg = e.toString().toLowerCase();
-        // 🤫 هنا السر: لو الضغطة كانت "إلغاء" أو "خروج" مش بنظهر أي إيرور خالص
-        if (msg.contains('user_cancel') || msg.contains('notavailable') || msg.contains('canceled')) {
-          debugPrint("تم إلغاء التوثيق بواسطة المستخدم - صمت تام");
+        if (msg.contains('user_cancel') ||
+            msg.contains('notavailable') ||
+            msg.contains('canceled')) {
           return;
         }
-
-        // 💡 لو فيه مشكلة تانية، بنديله تعليمات بدل مجرد إيرور
-        _showSnackBar("يرجى التأكد من نظافة الحساس ووضع إصبعك بشكل صحيح، أو تأكد من تسجيل بصمتك في إعدادات الهاتف.", Colors.orange);
+        _showSnackBar(
+            "يرجى التأكد من نظافة الحساس ووضع إصبعك بشكل صحيح، أو تأكد من تسجيل بصمتك في إعدادات الهاتف.",
+            Colors.orange);
         return;
       }
 
-      if (authenticated) {
-        await _sendAttendanceToServer();
-      }
-      // شلنا الـ else اللي بتطلع "لم يتم التحقق" عشان لو فشل مرة ميزعجوش بالرسائل
-
+      if (authenticated) await _sendAttendanceToServer();
     } catch (e) {
       debugPrint("خطأ غير متوقع في البصمة: $e");
     }
   }
+
   Future<void> _sendAttendanceToServer() async {
     setState(() => _isLoading = true);
     try {
@@ -249,7 +328,6 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
 
       final int selectedLocId = int.parse(_selectedOffice!['id'].toString());
 
-      // تجهيز البيانات بنفس الصيغة التي طلبها زميلك (Object داخل الـ Body)
       final Map<String, dynamic> attendanceData = {
         "id": 0,
         "userId": userGuid,
@@ -261,85 +339,42 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
         },
       };
 
-      final response = await http.post(
+      debugPrint("📤 Sending attendance: ${json.encode(attendanceData)}");
+
+      final response = await http
+          .post(
         Uri.parse('https://nourelman.runasp.net/api/Locations/employee-attendance'),
         headers: {
           'Content-Type': 'application/json',
-          if (token.isNotEmpty && token != 'no_token') 'Authorization': 'Bearer $token',
+          if (token.isNotEmpty && token != 'no_token')
+            'Authorization': 'Bearer $token',
         },
         body: json.encode(attendanceData),
       ).timeout(const Duration(seconds: 15));
 
+      debugPrint("📦 Attendance response: ${response.statusCode} - ${response.body}");
+
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // عرض رسالة النجاح للمستخدم
         _showSnackBar(
-          _checkType == "check-in" ? "✅ تم تسجيل الحضور بنجاح" : "✅ تم تسجيل الانصراف بنجاح",
+          _checkType == "check-in"
+              ? "✅ تم تسجيل الحضور بنجاح"
+              : "✅ تم تسجيل الانصراف بنجاح",
           Colors.green,
         );
 
-        // 1. تحديث الحالة محلياً فوراً (Local State Update)
-        // هذا السطر هو المسؤول عن تغيير لون الأيقونة فوراً من الأزرق للأحمر أو العكس
-        if (mounted) {
-          setState(() {
-            _checkType = (_checkType == "check-in") ? "check-out" : "check-in";
-          });
-        }
+        // ✅ بعد تسجيل العملية، جيب الحالة الجديدة
+        await _checkCurrentStatus();
 
-        // 2. تأخير بسيط (ثانية واحدة) قبل سؤال السيرفر عن الحالة الجديدة
-        // لضمان أن السيرفر أتم معالجة البيانات وتحديث قاعدة البيانات لديه
-        Future.delayed(const Duration(seconds: 1), () {
-          if (mounted) {
-            _checkCurrentStatus();
-          }
-        });
       } else {
         _showSnackBar("فشل في تسجيل العملية (${response.statusCode})", Colors.red);
       }
     } catch (e) {
-      // تصحيح السطر 270: استخدام الفاصلة الإنجليزية (,) بدلاً من العربية (،)
+      debugPrint("❌ Send attendance error: $e");
       _showSnackBar("لا يوجد اتصال بالإنترنت", Colors.red);
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
-  void _flipCheckType() {
-    if (mounted) {
-      setState(() {
-        _checkType = _checkType == "check-in" ? "check-out" : "check-in";
-      });
-    }
-  }
-
-  String? _calcWorkingHours(String? inTimeStr, String outTimeStr) {
-    try {
-      if (inTimeStr == null) return null;
-      int toSeconds(String t) {
-        final parts = t
-            .replaceAll(' AM', '')
-            .replaceAll(' PM', '')
-            .split(':');
-        final isPM = t.contains('PM');
-        int h = int.parse(parts[0]);
-        int m = int.parse(parts[1]);
-        int s = int.parse(parts[2]);
-        if (isPM && h != 12) h += 12;
-        if (!isPM && h == 12) h = 0;
-        return h * 3600 + m * 60 + s;
-      }
-
-      final diff = toSeconds(outTimeStr) - toSeconds(inTimeStr);
-      if (diff <= 0) return null;
-      final hh = (diff ~/ 3600).toString().padLeft(2, '0');
-      final mm = ((diff % 3600) ~/ 60).toString().padLeft(2, '0');
-      final ss = (diff % 60).toString().padLeft(2, '0');
-      return '$hh:$mm:$ss';
-    } catch (_) {
-      return null;
-    }
-  }
-
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message,
@@ -358,10 +393,11 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
-            title: const Text("  "),
-            backgroundColor: Colors.white,
-            elevation: 0,
-            centerTitle: true),
+          title: const Text("  "),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: true,
+        ),
         body: _isLoadingStatus
             ? const Center(
             child: CircularProgressIndicator(color: kActiveBlue))
@@ -462,8 +498,7 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-                color:
-                _selectedOffice != null ? kActiveBlue : kBorderColor),
+                color: _selectedOffice != null ? kActiveBlue : kBorderColor),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<Map<String, dynamic>>(
@@ -489,15 +524,10 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
   }
 
   Widget _buildFingerprintButton() {
-    // التحقق من صلاحية الضغط (يجب اختيار مكتب وتواجد المستخدم داخل النطاق)
     bool canPress = _selectedOffice != null && _isInRange;
-
-    // تحديد النص بناءً على الحالة الحالية القادمة من السيرفر أو التحديث المحلي
     String statusText = _checkType == "check-in"
         ? "اضغط لتسجيل الحضور"
         : "اضغط لتسجيل الانصراف";
-
-    // 🔥 تحديد اللون: أزرق للحضور وأحمر للانصراف
     Color activeColor = (_checkType == "check-in") ? kActiveBlue : Colors.red;
 
     return Column(
@@ -506,11 +536,11 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
           onTap: canPress
               ? _startBiometricAuth
               : () {
-            // رسائل توضيحية للموظف في حالة عدم تفعيل الزر
             if (_selectedOffice == null) {
               _showSnackBar("برجاء اختيار المكتب أولاً", Colors.orange);
             } else if (!_isInRange) {
-              _showSnackBar("أنت خارج النطاق، لا يمكنك البصم", Colors.red);
+              _showSnackBar(
+                  "أنت خارج النطاق، لا يمكنك البصم", Colors.red);
             }
           },
           child: AnimatedContainer(
@@ -519,20 +549,19 @@ class _MainAttendanceScreenState extends State<MainAttendanceScreen> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white,
-              // تغيير لون الحدود بناءً على الحالة وصلاحية الضغط
               border: Border.all(
                   color: canPress ? activeColor : Colors.grey.shade300,
                   width: 5),
               boxShadow: [
                 if (canPress)
                   BoxShadow(
-                      color: activeColor.withOpacity(0.3),
-                      blurRadius: 20)
+                      color: activeColor.withOpacity(0.3), blurRadius: 20)
               ],
             ),
             child: Icon(
-              // تغيير الأيقونة بناءً على نوع البصمة القادمة
-              _checkType == "check-in" ? Icons.fingerprint : Icons.exit_to_app,
+              _checkType == "check-in"
+                  ? Icons.fingerprint
+                  : Icons.exit_to_app,
               size: 80,
               color: canPress ? activeColor : Colors.grey.shade300,
             ),
